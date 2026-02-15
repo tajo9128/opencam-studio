@@ -33,7 +33,7 @@ const ScreenRecorder = () => {
     const {
         screenStream, audioStream, cameraStream,
         screenDimensions, cameraDimensions,
-        toggleScreen, toggleMic, toggleCamera, stopAll: stopStreams
+        toggleScreen, toggleMic, toggleCamera, stopAll: stopStreams, changeCamera, changeMic
     } = useStreams(screenVideoRef, cameraVideoRef, setStatus);
 
     const [webcamShape, setWebcamShape] = useState('circle');
@@ -377,7 +377,6 @@ const ScreenRecorder = () => {
 
     const startRecording = useCallback(() => {
         if (isRecording || countdown !== null) return;
-
         setCountdown(3);
         countdownTimerRef.current = setInterval(() => {
             setCountdown(prev => {
@@ -452,6 +451,8 @@ const ScreenRecorder = () => {
                 stopRecording={stopRecording}
                 isPaused={isPaused}
                 handleStopAll={handleStopAll}
+                changeCamera={changeCamera}
+                changeMic={changeMic}
             />
 
             <div className="mode-info">

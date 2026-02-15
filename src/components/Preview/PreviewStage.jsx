@@ -30,7 +30,6 @@ export const PreviewStage = ({
             }
         }
     }, [screenStream, useCanvas]);
-
     return (
         <div className={`preview-wrapper ${isRecording ? 'is-recording' : ''}`}>
             {countdown !== null && (

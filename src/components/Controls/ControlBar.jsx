@@ -1,7 +1,8 @@
 import React from 'react';
 import { BACKGROUND_PRESETS } from '../../constants/backgrounds';
 import { getSupportedFormats, EXPORT_FORMATS } from '../../constants/formats';
-
+import ChevronDown from './SVG/ChevronDown';
+import './Controls.css';
 export const ControlBar = ({
     screenStream,
     cameraStream,
@@ -28,14 +29,35 @@ export const ControlBar = ({
     isPaused,
     handleStopAll,
     recordingFormat,
-    setRecordingFormat
+    setRecordingFormat,
+    changeCamera,
+    changeMic
 }) => {
     const [activePanel, setActivePanel] = React.useState(null); // 'camera', 'bg', 'quality', 'format'
     const supportedFormats = React.useMemo(() => getSupportedFormats(), []);
-
+    const [showMicOptions, setShowMicOptions] = React.useState(false);
+    const [showCameraOptions, setShowCameraOptions] = React.useState(false);
+    const [cameraOption, setCameraOption] = React.useState('');
+    const [micID, setMicID] = React.useState('');
+    const [cameras, setCameras] = React.useState([]);
+    const [microphones, setMicrophones] = React.useState([]);
     const togglePanel = (panel) => {
         setActivePanel(activePanel === panel ? null : panel);
     };
+    const getCameras = async () => {
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+            const cameras = videoDevices.map(device => ({
+                label: device.label,
+                deviceId: device.deviceId,
+            }));
+            return cameras;
+        } catch (error) {
+            console.error("Failed to enumerate devices:", error);
+        }
+    };
+
 
     return (
         <div className="control-bar-container">
@@ -177,26 +199,87 @@ export const ControlBar = ({
                         onClick={toggleScreen} disabled={isRecording}>
                         {screenStream ? '● Screen' : 'Screen'}
                     </button>
-                    <button className={`btn-pill ${cameraStream ? 'active' : ''}`}
-                        onClick={() => {
-                            if (!cameraStream) {
-                                toggleCamera();
-                                setActivePanel('camera'); // Auto-open settings when turning on
-                            } else {
-                                // If already on, treat as a toggle for the panel
-                                if (activePanel === 'camera') {
-                                    setActivePanel(null);
-                                } else {
+                    <div className="grid">
+                        <button className={`btn-pill ${cameraStream ? 'active' : ''}`}
+                            onClick={async () => {
+                                if (!cameraStream) {
+                                    await toggleCamera();
+                                    const streams = await getCameras();
+                                    setCameras(streams);
                                     setActivePanel('camera');
+                                } else {
+                                    togglePanel('camera');
                                 }
-                            }
+                            }} disabled={isRecording}>
+                            {cameraStream ? '● Camera' : 'Camera'}
+                        </button>
+                        <button className="dropDownBtn" onClick={() => {
+                            setShowCameraOptions(!showCameraOptions)
+                        }}
+                            disabled={isRecording}>
+                            <ChevronDown />
+                        </button>
+                        {
+                            showCameraOptions && cameras.length > 0 && (
+                                <div className="dropDownMenu" style={{ left: "4rem", height: cameras.length > 2 ? '170px' : 'fit-content', overflowY: cameras.length > 2 ? 'scroll' : 'visible' }}>
+                                    <div  >
+                                        {cameras.map(type => (
+
+                                            <button key={type.deviceId} onClick={async () => {
+                                                await changeCamera(type.deviceId);
+                                                setCameraOption(type.deviceId);
+                                            }}
+                                                className={`btn-small  ${cameraOption === type.deviceId ? 'active' : ''} dropDownElement`}>
+                                                {type.label}
+                                            </button>
+
+                                        ))}
+                                    </div>
+                                </div>
+                            )
+                        }
+                    </div>
+                    <div className='grid'>
+                        <button className={`btn-pill ${audioStream ? 'active' : ''}`}
+                            onClick={async () => {
+                                if (!audioStream) {
+                                    await toggleMic();
+                                    const devices = await navigator.mediaDevices.enumerateDevices();
+                                    const audios = devices.filter(device => device.kind === 'audioinput').map(device => ({
+                                        label: device.label,
+                                        deviceId: device.deviceId,
+                                    }));
+                                    setMicrophones(audios);
+                                } else {
+                                    toggleMic();
+                                }
+                            }} disabled={isRecording}>
+                            {audioStream ? '● Mic' : 'Mic'}
+                        </button>
+                        <button className="dropDownBtn" onClick={() => {
+                            setShowMicOptions(!showMicOptions)
                         }} disabled={isRecording}>
-                        {cameraStream ? '● Camera' : 'Camera'}
-                    </button>
-                    <button className={`btn-pill ${audioStream ? 'active' : ''}`}
-                        onClick={toggleMic} disabled={isRecording}>
-                        {audioStream ? '● Mic' : 'Mic'}
-                    </button>
+                            <ChevronDown />
+                        </button>
+                        {
+                            showMicOptions && microphones.length > 0 && (
+                                <div style={{ height: microphones.length > 2 ? '170px' : 'fit-content', overflowY: microphones.length > 2 ? 'scroll' : 'visible' }} className='dropDownMenu'>
+                                    <div>
+                                        {microphones.map(type => (
+                                            <button key={type.deviceId} onClick={async () => {
+                                                await changeMic(type.deviceId);
+                                                setMicID(type.deviceId);
+                                            }}
+                                                className={`btn-small  ${micID === type.deviceId ? 'active' : ''} dropDownElement`}
+                                            >
+                                                {type.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )
+                        }
+                    </div>
                     <div className="vertical-divider" style={{ width: '1px', background: 'var(--glass-border)', margin: '0 0.2rem' }}></div>
                     <button className={`btn-pill ${activeBg !== 'none' || screenScale !== 1.0 || activePanel === 'bg' ? 'active' : ''}`}
                         onClick={() => togglePanel('bg')} disabled={isRecording}>
@@ -241,7 +324,10 @@ export const ControlBar = ({
                             )}
                         </>
                     )}
-                    <button className="btn-icon-bg" onClick={() => { setActivePanel(null); handleStopAll(); }} title="Reset">✕</button>
+                    <button className="btn-icon-bg" onClick={() => {
+                        setActivePanel(null);
+                        handleStopAll();
+                    }} title="Reset">✕</button>
                 </div>
             </div>
         </div>

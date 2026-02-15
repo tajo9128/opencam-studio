@@ -14,10 +14,11 @@ class MediaManager {
         }
     }
 
-    async getCameraStream(width, height) {
+    async getCameraStream(width, height, deviceId) {
         try {
             return await navigator.mediaDevices.getUserMedia({
                 video: {
+                    deviceId: deviceId ? { exact: deviceId } : undefined,
                     width: { max: width || 1920 },
                     height: { max: height || 1080 },
                     frameRate: { ideal: 30, max: 30 }
@@ -34,10 +35,11 @@ class MediaManager {
         }
     }
 
-    async getAudioStream() {
+    async getAudioStream(deviceId) {
         try {
             return await navigator.mediaDevices.getUserMedia({
                 audio: {
+                    deviceId: deviceId ? { exact: deviceId } : undefined,
                     echoCancellation: true,
                     noiseSuppression: true,
                     autoGainControl: true

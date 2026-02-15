@@ -20,7 +20,9 @@ export const useRecording = ({
     const chunksRef = useRef([]);
     const isStartingRef = useRef(false);
 
+
     const startRecording = useCallback(async () => {
+        console.log('Attempting to start recording...');
         if (isStartingRef.current) return;
         isStartingRef.current = true;
 
@@ -42,6 +44,7 @@ export const useRecording = ({
 
             // Case A: Webcam is active OR Background/Frame is active OR Non-Native Scaling (requires canvas)
             const useCanvas = cameraStream || activeBg !== 'none' || (screenScale && screenScale < 1.0) || recordingQuality !== 'native';
+            console.log('Use Canvas:', useCanvas, { cameraStream, activeBg, screenScale, recordingQuality });
 
             if (useCanvas) {
                 if (!canvasRef.current) throw new Error('Canvas not found');
@@ -57,7 +60,11 @@ export const useRecording = ({
 
             // Add Audio track if available
             if (audioStream) {
-                tracks.push(...audioStream.getAudioTracks());
+                const audioTrack = audioStream.getAudioTracks()[0];
+                if (audioTrack) {
+                    tracks.push(audioTrack);
+                    console.log('Added audio track to recording');
+                }
             }
 
             if (tracks.length === 0) throw new Error('No tracks available for recording');
