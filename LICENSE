@@ -19,3 +19,17 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+ScreenStudio includes or depends on the following open-source projects:
+
+- React (MIT) — https://react.dev
+- React Router (MIT) — https://reactrouter.com
+- Vite (MIT) — https://vitejs.dev
+- Web Audio API / MediaRecorder API — Browser-native (W3C)
+- Google Identity Services — https://developers.google.com/identity
+- YouTube Data API v3 — https://developers.google.com/youtube/v3
+
+FFmpeg is used in the RTMP relay server under the LGPL/GPL license.
+See https://ffmpeg.org/legal.html for details.
