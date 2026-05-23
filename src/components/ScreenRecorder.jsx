@@ -22,6 +22,8 @@ import SaveRecordingModal from './Modals/SaveRecordingModal';
 import { AnnotationToolbar } from './Annotation/AnnotationToolbar';
 import { ChatPanel } from './Chat/ChatPanel';
 import { YouTubeUploadModal } from './Modals/YouTubeUploadModal';
+import { FilterPanel } from './Filters/FilterPanel';
+import { applyFilters } from '../utils/FilterEngine';
 
 const QUALITY_PRESETS = {
     'native': { width: null, height: null, label: 'Native Source', bitrate: 15000000 },

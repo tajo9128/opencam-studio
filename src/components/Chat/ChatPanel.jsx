@@ -1,102 +1,29 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { useOllama } from '../../hooks/useOllama';
-import { executeCommand } from '../../utils/CommandExecutor';
+import React, { useState, useRef, useEffect } from 'react';
 import './ChatPanel.css';
 
-const SYSTEM_PROMPT = `You are ScreenStudio AI, a video editing assistant inside a screen recorder app. You help users edit their screen recordings using natural language.
-
-Available actions (respond with JSON on a new line after your explanation):
-- {"action":"trim","start":0,"end":5} — trim out seconds 0 to 5
-- {"action":"zoom","time":30,"duration":3,"level":3} — zoom 3x at 0:30 for 3 seconds
-- {"action":"add_text","text":"Hello","time":0,"duration":3,"x":100,"y":100}
-- {"action":"set_speed","time":0,"duration":10,"speed":2} — 2x speed for 10 seconds
-- {"action":"export_gif","start":0,"end":10} — export as GIF
-- {"action":"transcribe"} — transcribe the recording audio
-- {"action":"title_card","text":"My Video","duration":3} — add title card
-- {"action":"thumbnail","time":5} — extract thumbnail at 5s
-- {"action":"blur_bg","amount":10} — blur webcam background
-- {"action":"description","generate":true} — generate YouTube title/description
-- {"action":"quality","preset":"1080p"} — change recording quality
-
-If the user asks something unrelated to video editing, answer normally and helpfully.
-Always keep responses concise.`;
-
-export const ChatPanel = ({ isOpen, onClose, onExecuteCommand, recordingBlob }) => {
-    const { connected, model, setModel, models, loading, error, chat } = useOllama();
-    const [messages, setMessages] = useState([]);
+export const ChatPanel = ({
+    isOpen, onClose, messages, isProcessing, onSend, onClear,
+    apiKey, onApiKeyChange,
+    ollamaConnected, ollamaModel, ollamaModels, onCheckOllama,
+}) => {
     const [input, setInput] = useState('');
+    const [showSettings, setShowSettings] = useState(false);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
 
-    const scrollToBottom = useCallback(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, []);
+    useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+    useEffect(() => { if (isOpen) { inputRef.current?.focus(); onCheckOllama?.(); } }, [isOpen, onCheckOllama]);
 
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages, scrollToBottom]);
-
-    useEffect(() => {
-        if (isOpen && inputRef.current) {
-            inputRef.current.focus();
-        }
-    }, [isOpen]);
-
-    const handleSend = useCallback(async () => {
-        if (!input.trim() || loading) return;
-
-        const userMessage = { role: 'user', content: input.trim() };
-        const newMessages = [...messages, userMessage];
-        setMessages(newMessages);
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!input.trim() || isProcessing) return;
+        onSend(input);
         setInput('');
+    };
 
-        try {
-            const ollamaMessages = [
-                { role: 'system', content: SYSTEM_PROMPT },
-                ...newMessages.map(m => ({ role: m.role, content: m.content })),
-            ];
-
-            const response = await chat(ollamaMessages);
-
-            if (response?.message?.content) {
-                const aiContent = response.message.content;
-                setMessages(prev => [...prev, { role: 'assistant', content: aiContent }]);
-
-                // Try to extract and execute a command
-                const jsonMatch = aiContent.match(/\{[\s\S]*?"action"\s*:\s*"[^"]+"[\s\S]*?\}/);
-                if (jsonMatch && onExecuteCommand) {
-                    try {
-                        const command = JSON.parse(jsonMatch[0]);
-                        const result = await executeCommand(command, recordingBlob);
-                        if (result) {
-                            setMessages(prev => [...prev, {
-                                role: 'system',
-                                content: `Executed: ${command.action} ${result.success ? '✓' : '✗ ' + result.error}`,
-                            }]);
-                            if (onExecuteCommand) onExecuteCommand(command, result);
-                        }
-                    } catch {
-                        // Not a valid JSON command, that's fine
-                    }
-                }
-            } else if (error) {
-                setMessages(prev => [...prev, { role: 'system', content: `Error: ${error}` }]);
-            }
-        } catch (err) {
-            setMessages(prev => [...prev, { role: 'system', content: `Error: ${err.message}` }]);
-        }
-    }, [input, loading, messages, chat, error, onExecuteCommand, recordingBlob]);
-
-    const handleKeyDown = useCallback((e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
-        }
-    }, [handleSend]);
-
-    const clearChat = useCallback(() => {
-        setMessages([]);
-    }, []);
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(e); }
+    };
 
     if (!isOpen) return null;
 
@@ -105,80 +32,70 @@ export const ChatPanel = ({ isOpen, onClose, onExecuteCommand, recordingBlob }) 
             <div className="chat-header">
                 <div className="chat-header-left">
                     <span className="chat-icon">AI</span>
-                    <div>
-                        <h3>ScreenStudio AI</h3>
-                        <span className={`chat-status ${connected ? 'connected' : 'disconnected'}`}>
-                            {connected ? `Connected: ${model}` : 'Ollama not detected'}
-                        </span>
-                    </div>
+                    <span className="chat-title">ScreenStudio AI</span>
+                    <span className={`chat-status ${ollamaConnected ? 'connected' : apiKey ? 'connected' : 'local'}`}>
+                        {ollamaConnected ? `Ollama: ${ollamaModel || 'ready'}` : apiKey ? 'API' : 'Local'}
+                    </span>
                 </div>
                 <div className="chat-header-right">
-                    {connected && models.length > 0 && (
-                        <select
-                            className="chat-model-select"
-                            value={model}
-                            onChange={e => setModel(e.target.value)}
-                        >
-                            {models.map(m => (
-                                <option key={m} value={m}>{m}</option>
-                            ))}
-                        </select>
-                    )}
-                    <button className="btn-icon-bg" onClick={clearChat} title="Clear chat">Clear</button>
-                    <button className="btn-icon-bg" onClick={onClose} title="Close">x</button>
+                    <button className="btn-icon-sm" onClick={() => setShowSettings(!showSettings)} title="Settings">S</button>
+                    <button className="btn-icon-sm" onClick={onClear} title="Clear chat">C</button>
+                    <button className="btn-icon-sm" onClick={onClose} title="Close">x</button>
                 </div>
             </div>
 
+            {showSettings && (
+                <div className="chat-settings">
+                    <label>
+                        <span>Ollama Status</span>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.75rem', color: ollamaConnected ? '#22c55e' : '#ef4444' }}>
+                                {ollamaConnected ? `Connected (${ollamaModels?.length || 0} models)` : 'Not connected'}
+                            </span>
+                            <button className="btn-icon-sm" onClick={onCheckOllama} title="Refresh">R</button>
+                        </div>
+                    </label>
+                    {ollamaConnected && ollamaModels?.length > 0 && (
+                        <label>
+                            <span>Model</span>
+                            <select className="chat-input-sm" value={ollamaModel || ''} onChange={() => {}}>
+                                {ollamaModels.map(m => <option key={m} value={m}>{m}</option>)}
+                            </select>
+                        </label>
+                    )}
+                    <label>
+                        <span>API Key (optional, for non-Ollama)</span>
+                        <input type="password" value={apiKey} onChange={(e) => onApiKeyChange(e.target.value)}
+                            placeholder="sk-... (OpenAI compatible)" className="chat-input-sm" />
+                    </label>
+                    <p className="chat-settings-hint">
+                        Ollama (free, local) handles complex commands. Without it, basic commands still work instantly via local pattern matching.
+                    </p>
+                </div>
+            )}
+
             <div className="chat-messages">
-                {messages.length === 0 && (
-                    <div className="chat-empty">
-                        {!connected ? (
-                            <>
-                                <p style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Ollama not detected</p>
-                                <p>Install Ollama from <a href="https://ollama.com" target="_blank" rel="noopener">ollama.com</a> and run a model (e.g. <code>ollama pull gemma3</code>) to use AI features.</p>
-                            </>
-                        ) : (
-                            <>
-                                <p style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>Ask me to edit your recording</p>
-                                <p>Try: "Trim the first 5 seconds" or "Add a title card" or "Transcribe this"</p>
-                            </>
-                        )}
-                    </div>
-                )}
                 {messages.map((msg, i) => (
-                    <div key={i} className={`chat-message chat-${msg.role}`}>
-                        <div className="chat-bubble">
-                            {msg.content}
+                    <div key={i} className={`chat-msg ${msg.role}`}>
+                        <div className="chat-msg-content">
+                            {msg.content.split('\n').map((line, j) => <p key={j}>{line}</p>)}
                         </div>
                     </div>
                 ))}
-                {loading && (
-                    <div className="chat-message chat-assistant">
-                        <div className="chat-bubble chat-loading">Thinking...</div>
+                {isProcessing && (
+                    <div className="chat-msg assistant">
+                        <div className="chat-msg-content"><span className="typing-indicator">Thinking...</span></div>
                     </div>
                 )}
                 <div ref={messagesEndRef} />
             </div>
 
-            <div className="chat-input-area">
-                <textarea
-                    ref={inputRef}
-                    className="chat-input"
-                    value={input}
-                    onChange={e => setInput(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder={connected ? "Ask me to edit your recording..." : "Start Ollama to use AI..."}
-                    disabled={!connected}
-                    rows={2}
-                />
-                <button
-                    className="btn btn-primary chat-send-btn"
-                    onClick={handleSend}
-                    disabled={!connected || !input.trim() || loading}
-                >
-                    Send
-                </button>
-            </div>
+            <form className="chat-input-area" onSubmit={handleSubmit}>
+                <input ref={inputRef} type="text" value={input} onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown} placeholder='Try "trim first 5 seconds" or "help"'
+                    disabled={isProcessing} className="chat-input" />
+                <button type="submit" disabled={!input.trim() || isProcessing} className="chat-send-btn">Send</button>
+            </form>
         </div>
     );
 };

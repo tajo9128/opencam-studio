@@ -1,44 +1,92 @@
-// CommandExecutor.js — maps AI commands to actual operations
-// Most commands return { success: true/false, message, data? }
-
-export const executeCommand = async (command, recordingBlob) => {
-    if (!command || !command.action) return { success: false, error: 'No action specified' };
-
-    switch (command.action) {
-        case 'trim':
-            return { success: true, message: `Trim: ${command.start}s to ${command.end}s`, data: command };
-
-        case 'zoom':
-            return { success: true, message: `Zoom ${command.level}x at ${command.time}s for ${command.duration}s`, data: command };
-
-        case 'add_text':
-            return { success: true, message: `Text "${command.text}" at ${command.time}s`, data: command };
-
-        case 'set_speed':
-            return { success: true, message: `Speed ${command.speed}x from ${command.time}s`, data: command };
-
-        case 'export_gif':
-            return { success: true, message: `Export GIF ${command.start}s-${command.end}s`, data: command };
-
-        case 'transcribe':
-            return { success: true, message: 'Transcription requested', data: command };
-
-        case 'title_card':
-            return { success: true, message: `Title card: "${command.text}" for ${command.duration}s`, data: command };
-
-        case 'thumbnail':
-            return { success: true, message: `Extract thumbnail at ${command.time}s`, data: command };
-
-        case 'blur_bg':
-            return { success: true, message: `Blur background amount: ${command.amount}`, data: command };
-
-        case 'description':
-            return { success: true, message: 'Generating YouTube metadata...', data: command };
-
-        case 'quality':
-            return { success: true, message: `Quality set to ${command.preset}`, data: command };
-
-        default:
-            return { success: false, error: `Unknown action: ${command.action}` };
+// CommandExecutor — maps AI commands to actual ScreenStudio operations
+export class CommandExecutor {
+    constructor(setters) {
+        this.setters = setters;
     }
-};
+
+    execute(command) {
+        if (!command || !command.action) return;
+
+        switch (command.action) {
+            case 'trim':
+            case 'trim_end':
+                this.setters.showToast?.('Trim', 'Trim feature coming soon — use the trim button', 'info');
+                break;
+
+            case 'zoom':
+                this.setters.setZoomEnabled?.(true);
+                this.setters.showToast?.('Zoom', `Zoom ${command.level || 3}x at ${command.time}s`, 'success');
+                break;
+
+            case 'title':
+            case 'title_card':
+                this.setters.showToast?.('Title', 'Title card feature coming soon', 'info');
+                break;
+
+            case 'export_gif':
+                this.setters.showToast?.('GIF Export', 'GIF export coming soon', 'info');
+                break;
+
+            case 'transcribe':
+                this.setters.showToast?.('Transcribe', 'Transcription coming soon', 'info');
+                break;
+
+            case 'set_quality': {
+                const valid = ['720p', '1080p', '1440p'];
+                if (valid.includes(command.quality)) {
+                    this.setters.setRecordingQuality?.(command.quality);
+                    this.setters.showToast?.('Quality', `Set to ${command.quality}`, 'success');
+                } else {
+                    this.setters.showToast?.('Quality', `Invalid: ${command.quality}. Use 720p, 1080p, or 1440p.`, 'error');
+                }
+                break;
+            }
+
+            case 'set_format': {
+                const valid = ['mp4-h264', 'mp4', 'webm-vp9', 'webm-vp8', 'mkv'];
+                const match = valid.find(f => f.includes(command.format));
+                if (match) {
+                    this.setters.setRecordingFormat?.(match);
+                    this.setters.showToast?.('Format', `Set to ${match}`, 'success');
+                } else {
+                    this.setters.showToast?.('Format', `Unknown: ${command.format}`, 'error');
+                }
+                break;
+            }
+
+            case 'cursor_fx':
+                this.setters.setCursorFxEnabled?.(command.enabled);
+                this.setters.showToast?.('Cursor FX', command.enabled ? 'Enabled' : 'Disabled', 'success');
+                break;
+
+            case 'annotate':
+                this.setters.setAnnotationEnabled?.(true);
+                this.setters.setTool?.(command.tool || 'pen');
+                this.setters.showToast?.('Annotation', `Switched to ${command.tool || 'pen'}`, 'success');
+                break;
+
+            case 'start_recording':
+                this.setters.startRecording?.();
+                break;
+
+            case 'stop_recording':
+                this.setters.stopRecording?.();
+                break;
+
+            case 'pause_recording':
+                this.setters.pauseRecording?.();
+                break;
+
+            case 'resume_recording':
+                this.setters.resumeRecording?.();
+                break;
+
+            case 'help':
+            case 'chat':
+                break;
+
+            default:
+                this.setters.showToast?.('AI', `Unknown: ${command.action}`, 'error');
+        }
+    }
+}

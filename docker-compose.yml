@@ -4,26 +4,8 @@ services:
     ports:
       - "3000:80"
     restart: unless-stopped
-    # For local development: connect to host Ollama
+    # Ollama connects via host network — user runs Ollama separately
+    # Default: http://localhost:11434
+    # For VPS with Ollama on same host: use host.docker.internal
     extra_hosts:
       - "host.docker.internal:host-gateway"
-
-  # Optional: Run Ollama in Docker (for VPS deployment)
-  # Uncomment below if you want Ollama in the same compose stack
-  # ollama:
-  #   image: ollama/ollama:latest
-  #   ports:
-  #     - "11434:11434"
-  #   volumes:
-  #     - ollama_data:/root/.ollama
-  #   restart: unless-stopped
-  #   deploy:
-  #     resources:
-  #       reservations:
-  #         devices:
-  #           - driver: nvidia
-  #             count: all
-  #             capabilities: [gpu]
-
-# volumes:
-#   ollama_data:
