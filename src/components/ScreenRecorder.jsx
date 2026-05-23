@@ -26,6 +26,7 @@ import { FilterPanel } from './Filters/FilterPanel';
 import { applyFilters } from '../utils/FilterEngine';
 import { Timeline } from './Timeline/Timeline';
 import { useTimeline } from '../hooks/useTimeline';
+import { WelcomeModal } from './WelcomeModal/WelcomeModal';
 
 const QUALITY_PRESETS = {
     'native': { width: null, height: null, label: 'Native Source', bitrate: 15000000 },
@@ -69,6 +70,7 @@ const ScreenRecorder = () => {
     const [ytOpen, setYtOpen] = useState(false);
     const [filterPanelOpen, setFilterPanelOpen] = useState(false);
     const [activeFilters, setActiveFilters] = useState([]);
+    const [showWelcome, setShowWelcome] = useState(false);
 
     const audioLevel = useAudioLevel(audioStream);
     const { drawCursorFx } = useCursorFx(canvasRef, cursorFxEnabled);
@@ -325,6 +327,11 @@ const ScreenRecorder = () => {
                 setDirectoryHandle(savedHandle);
                 const state = await savedHandle.queryPermission({ mode: 'readwrite' });
                 setIsHandleAuthorized(state === 'granted');
+                if (state !== 'granted') {
+                    setShowWelcome(true);
+                }
+            } else {
+                setShowWelcome(true);
             }
         };
         loadSavedState();
@@ -470,6 +477,18 @@ const ScreenRecorder = () => {
                 onClear={ai.clearMessages} apiKey={ai.apiKey} onApiKeyChange={ai.setApiKey}
                 ollamaConnected={ai.ollamaConnected} ollamaModel={ai.ollamaModel}
                 ollamaModels={ai.ollamaModels} onCheckOllama={ai.checkOllama} />
+
+            <WelcomeModal
+                isOpen={showWelcome}
+                onFolderSelected={async (handle) => {
+                    setDirectoryHandle(handle);
+                    const perm = await handle.requestPermission({ mode: 'readwrite' });
+                    setIsHandleAuthorized(perm === 'granted');
+                    await storageManager.setSetting('workspace_handle', handle);
+                    setShowWelcome(false);
+                }}
+                onSkip={() => setShowWelcome(false)}
+            />
         </div>
     );
 };
