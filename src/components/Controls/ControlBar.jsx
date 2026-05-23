@@ -32,7 +32,15 @@ export const ControlBar = ({
     setRecordingFormat,
     changeCamera,
     changeMic,
-    audioLevel = 0
+    audioLevel = 0,
+    cursorFxEnabled,
+    setCursorFxEnabled,
+    webcamOnly,
+    setWebcamOnly,
+    annotationEnabled,
+    setAnnotationEnabled,
+    zoomEnabled,
+    setZoomEnabled
 }) => {
     const [activePanel, setActivePanel] = React.useState(null); // 'camera', 'bg', 'quality', 'format'
     const supportedFormats = React.useMemo(() => getSupportedFormats(), []);
@@ -310,10 +318,36 @@ export const ControlBar = ({
                         onClick={() => togglePanel('quality')} disabled={isRecording}>
                         ⚙️ {recordingQuality}
                     </button>
+                    <div className="vertical-divider" style={{ width: '1px', background: 'var(--glass-border)', margin: '0 0.2rem' }}></div>
+                    <button className={`btn-pill ${cursorFxEnabled ? 'active' : ''}`}
+                        onClick={() => setCursorFxEnabled(!cursorFxEnabled)}>
+                        🎯 Cursor FX
+                    </button>
+                    {cameraStream && (
+                        <>
+                            <div className="vertical-divider" style={{ width: '1px', background: 'var(--glass-border)', margin: '0 0.2rem' }}></div>
+                            <button className={`btn-pill ${webcamOnly ? 'active' : ''}`}
+                                onClick={() => setWebcamOnly(!webcamOnly)}
+                                disabled={isRecording}>
+                                📷 Webcam Only
+                            </button>
+                        </>
+                    )}
+                    <div className="vertical-divider" style={{ width: '1px', background: 'var(--glass-border)', margin: '0 0.2rem' }}></div>
+                    <button className={`btn-pill ${annotationEnabled ? 'active' : ''}`}
+                        onClick={() => setAnnotationEnabled(!annotationEnabled)}
+                        disabled={isRecording}>
+                        ✏️ Draw
+                    </button>
+                    <div className="vertical-divider" style={{ width: '1px', background: 'var(--glass-border)', margin: '0 0.2rem' }}></div>
+                    <button className={`btn-pill ${zoomEnabled ? 'active' : ''}`}
+                        onClick={() => setZoomEnabled(!zoomEnabled)}>
+                        🔍 Zoom
+                    </button>
                 </div>
 
                 <div className="main-actions">
-                    {(screenStream || cameraStream || activeBg !== 'none') && (
+                    {(screenStream || cameraStream || activeBg !== 'none' || webcamOnly) && (
                         <>
                             {!isRecording ? (
                                 <button className="btn btn-record"

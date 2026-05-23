@@ -5,6 +5,9 @@ import { useStreams } from '../hooks/useStreams';
 import { useFileSystem } from '../hooks/useFileSystem';
 import { useRecording } from '../hooks/useRecording';
 import { useAudioLevel } from '../hooks/useAudioLevel';
+import { useCursorFx } from '../hooks/useCursorFx';
+import { useAnnotation } from '../hooks/useAnnotation';
+import { useZoom } from '../hooks/useZoom';
 import { EXPORT_FORMATS, getDefaultFormat } from '../constants/formats';
 
 // UI Components
@@ -14,6 +17,7 @@ import { PreviewStage } from './Preview/PreviewStage';
 import { Toast } from './Notifications/Toast';
 import { VideoPlayerModal } from './Modals/VideoPlayerModal';
 import SaveRecordingModal from './Modals/SaveRecordingModal';
+import { AnnotationToolbar } from './Annotation/AnnotationToolbar';
 
 const QUALITY_PRESETS = {
     'native': { width: null, height: null, label: 'Native Source', bitrate: 15000000 },
@@ -47,7 +51,18 @@ const ScreenRecorder = () => {
     const [recordingFormat, setRecordingFormat] = useState(getDefaultFormat());
     const [countdown, setCountdown] = useState(null);
     const [elapsedTime, setElapsedTime] = useState(0);
+    const [cursorFxEnabled, setCursorFxEnabled] = useState(false);
+    const [webcamOnly, setWebcamOnly] = useState(false);
+    const [annotationEnabled, setAnnotationEnabled] = useState(false);
+    const [zoomEnabled, setZoomEnabled] = useState(false);
     const audioLevel = useAudioLevel(audioStream);
+    const { drawCursorFx } = useCursorFx(canvasRef, cursorFxEnabled);
+    const {
+        tool, setTool, color, setColor, strokeWidth, setStrokeWidth,
+        drawAnnotations, handleMouseDown: annotationMouseDown, handleMouseMove: annotationMouseMove,
+        handleMouseUp: annotationMouseUp, undo, redo, clearAnnotations, canUndo, canRedo
+    } = useAnnotation(annotationEnabled);
+    const { applyZoom, restoreZoom } = useZoom(canvasRef, zoomEnabled);
 
     const showToast = useCallback((title, message, type = 'info') => {
         setToast({ title, message, type });
@@ -103,7 +118,7 @@ const ScreenRecorder = () => {
                 });
 
                 setTimeout(() => setHighlightedFile(null), 5000);
-            } catch (err) {
+            } catch {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
@@ -230,12 +245,16 @@ const ScreenRecorder = () => {
         if (!canvas) return;
         const ctx = canvas.getContext('2d', { alpha: false });
 
-        const isCanvasNeeded = cameraStream || activeBg !== 'none' || screenScale < 1.0 || (recordingQuality && recordingQuality !== 'native');
+        const isCanvasNeeded = cameraStream || activeBg !== 'none' || screenScale < 1.0 || (recordingQuality && recordingQuality !== 'native') || webcamOnly || annotationEnabled || zoomEnabled;
         if (!isCanvasNeeded) return;
 
         const bubbleSize = canvas.height * webcamScale;
         const { x, y } = webcamPos.current;
 
+        // Apply zoom transform (wraps screen+webcam drawing)
+        applyZoom(ctx, canvas.width, canvas.height);
+
+        // Background
         const preset = BACKGROUND_PRESETS.find(p => p.id === activeBg);
         if (preset && preset.colors) {
             const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
@@ -247,73 +266,104 @@ const ScreenRecorder = () => {
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
-        if (screenStream && screenVideoRef.current.readyState >= 2) {
-            const videoData = screenVideoRef.current;
-            const vWidth = videoData.videoWidth;
-            const vHeight = videoData.videoHeight;
+        // Webcam-only mode: fill canvas with webcam
+        if (webcamOnly && cameraStream && cameraVideoRef.current.readyState >= 2) {
+            const webcamVideo = cameraVideoRef.current;
+            const vWidth = webcamVideo.videoWidth;
+            const vHeight = webcamVideo.videoHeight;
             const vAspect = vWidth / vHeight;
             const cAspect = canvas.width / canvas.height;
 
             let drawWidth, drawHeight;
             if (vAspect > cAspect) {
-                drawWidth = canvas.width;
-                drawHeight = canvas.width / vAspect;
-            } else {
                 drawHeight = canvas.height;
                 drawWidth = canvas.height * vAspect;
-            }
-
-            const sw = drawWidth * screenScale;
-            const sh = drawHeight * screenScale;
-            const sx = (canvas.width - sw) / 2;
-            const sy = (canvas.height - sh) / 2;
-
-            if (screenScale < 1.0) {
-                ctx.save();
-                ctx.beginPath();
-                ctx.roundRect(sx, sy, sw, sh, 16);
-                ctx.clip();
-                ctx.drawImage(videoData, sx, sy, sw, sh);
-                ctx.restore();
             } else {
-                ctx.drawImage(videoData, sx, sy, sw, sh);
+                drawWidth = canvas.width;
+                drawHeight = canvas.width / vAspect;
             }
-        }
+            const dx = (canvas.width - drawWidth) / 2;
+            const dy = (canvas.height - drawHeight) / 2;
+            ctx.drawImage(webcamVideo, dx, dy, drawWidth, drawHeight);
+        } else {
+            // Normal mode: screen + webcam overlay
+            if (screenStream && screenVideoRef.current.readyState >= 2) {
+                const videoData = screenVideoRef.current;
+                const vWidth = videoData.videoWidth;
+                const vHeight = videoData.videoHeight;
+                const vAspect = vWidth / vHeight;
+                const cAspect = canvas.width / canvas.height;
 
-        if (cameraStream && cameraVideoRef.current.readyState >= 2) {
-            const webcamVideo = cameraVideoRef.current;
-            const vWidth = webcamVideo.videoWidth;
-            const vHeight = webcamVideo.videoHeight;
-            const vAspect = vWidth / vHeight;
-
-            let dw, dh, dx, dy;
-            if (vAspect > 1) {
-                dw = bubbleSize * vAspect; dh = bubbleSize;
-                dx = x - (dw - bubbleSize) / 2; dy = y;
-            } else {
-                dw = bubbleSize; dh = bubbleSize / vAspect;
-                dx = x; dy = y - (dh - bubbleSize) / 2;
-            }
-
-            if (webcamShape !== 'square') {
-                ctx.save();
-                ctx.beginPath();
-                if (webcamShape === 'circle') {
-                    ctx.arc(x + bubbleSize / 2, y + bubbleSize / 2, bubbleSize / 2, 0, Math.PI * 2);
+                let drawWidth, drawHeight;
+                if (vAspect > cAspect) {
+                    drawWidth = canvas.width;
+                    drawHeight = canvas.width / vAspect;
                 } else {
-                    ctx.roundRect(x, y, bubbleSize, bubbleSize, 32);
+                    drawHeight = canvas.height;
+                    drawWidth = canvas.height * vAspect;
                 }
-                ctx.clip();
-                ctx.drawImage(webcamVideo, dx, dy, dw, dh);
-                ctx.restore();
-            } else {
-                ctx.drawImage(webcamVideo, dx, dy, dw, dh);
+
+                const sw = drawWidth * screenScale;
+                const sh = drawHeight * screenScale;
+                const sx = (canvas.width - sw) / 2;
+                const sy = (canvas.height - sh) / 2;
+
+                if (screenScale < 1.0) {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.roundRect(sx, sy, sw, sh, 16);
+                    ctx.clip();
+                    ctx.drawImage(videoData, sx, sy, sw, sh);
+                    ctx.restore();
+                } else {
+                    ctx.drawImage(videoData, sx, sy, sw, sh);
+                }
+            }
+
+            if (cameraStream && cameraVideoRef.current.readyState >= 2) {
+                const webcamVideo = cameraVideoRef.current;
+                const vWidth = webcamVideo.videoWidth;
+                const vHeight = webcamVideo.videoHeight;
+                const vAspect = vWidth / vHeight;
+
+                let dw, dh, dx, dy;
+                if (vAspect > 1) {
+                    dw = bubbleSize * vAspect; dh = bubbleSize;
+                    dx = x - (dw - bubbleSize) / 2; dy = y;
+                } else {
+                    dw = bubbleSize; dh = bubbleSize / vAspect;
+                    dx = x; dy = y - (dh - bubbleSize) / 2;
+                }
+
+                if (webcamShape !== 'square') {
+                    ctx.save();
+                    ctx.beginPath();
+                    if (webcamShape === 'circle') {
+                        ctx.arc(x + bubbleSize / 2, y + bubbleSize / 2, bubbleSize / 2, 0, Math.PI * 2);
+                    } else {
+                        ctx.roundRect(x, y, bubbleSize, bubbleSize, 32);
+                    }
+                    ctx.clip();
+                    ctx.drawImage(webcamVideo, dx, dy, dw, dh);
+                    ctx.restore();
+                } else {
+                    ctx.drawImage(webcamVideo, dx, dy, dw, dh);
+                }
             }
         }
-    }, [cameraStream, screenStream, activeBg, webcamScale, screenScale, webcamShape, recordingQuality]);
+
+        // Cursor effects overlay
+        drawCursorFx(ctx, canvas.width, canvas.height);
+
+        // Annotation overlay
+        annotation.drawAnnotations(ctx);
+
+        // Reset zoom transform
+        zoom.resetZoom(ctx);
+    }, [cameraStream, screenStream, activeBg, webcamScale, screenScale, webcamShape, recordingQuality, webcamOnly, annotationEnabled, zoomEnabled, drawCursorFx, annotation, zoom]);
 
     const launchLoop = useCallback(() => {
-        const isCanvasNeeded = cameraStream || activeBg !== 'none' || screenScale < 1.0 || recordingQuality !== 'native';
+        const isCanvasNeeded = cameraStream || activeBg !== 'none' || screenScale < 1.0 || recordingQuality !== 'native' || webcamOnly || cursorFxEnabled || annotationEnabled || zoomEnabled;
 
         if (workerRef.current) {
             workerRef.current.terminate();
@@ -332,7 +382,7 @@ const ScreenRecorder = () => {
             workerRef.current.postMessage({ action: 'setFps', fps: 30 });
             workerRef.current.postMessage({ action: 'start' });
         }
-    }, [cameraStream, activeBg, screenScale, recordingQuality, renderFrame]);
+    }, [cameraStream, activeBg, screenScale, recordingQuality, webcamOnly, cursorFxEnabled, annotationEnabled, renderFrame]);
 
     useEffect(() => {
         launchLoop();
@@ -352,6 +402,10 @@ const ScreenRecorder = () => {
     }, []);
 
     const handleMouseDown = useCallback((e) => {
+        if (annotationEnabled) {
+            annotation.handleMouseDown(e);
+            return;
+        }
         const pos = getCanvasMousePos(e);
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -361,15 +415,25 @@ const ScreenRecorder = () => {
             isDragging.current = true;
             dragOffset.current = { x: pos.x - x, y: pos.y - y };
         }
-    }, [getCanvasMousePos, webcamScale]);
+    }, [getCanvasMousePos, webcamScale, annotationEnabled, annotation]);
 
     const handleMouseMove = useCallback((e) => {
+        if (annotationEnabled) {
+            annotation.handleMouseMove(e);
+            return;
+        }
         if (!isDragging.current) return;
         const pos = getCanvasMousePos(e);
         webcamPos.current = { x: pos.x - dragOffset.current.x, y: pos.y - dragOffset.current.y };
-    }, [getCanvasMousePos]);
+    }, [getCanvasMousePos, annotationEnabled, annotation]);
 
-    const handleMouseUp = useCallback(() => { isDragging.current = false; }, []);
+    const handleMouseUp = useCallback((e) => {
+        if (annotationEnabled) {
+            annotation.handleMouseUp(e);
+            return;
+        }
+        isDragging.current = false;
+    }, [annotationEnabled, annotation]);
 
     useEffect(() => {
         const loadSavedState = async () => {
@@ -410,7 +474,6 @@ const ScreenRecorder = () => {
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e) => {
-            // Don't trigger if user is typing in an input
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
             if (e.code === 'Space') {
@@ -473,6 +536,22 @@ const ScreenRecorder = () => {
                 elapsedTime={formatTime(elapsedTime)}
             />
 
+            {annotationEnabled && (
+                <AnnotationToolbar
+                    tool={tool}
+                    setTool={setTool}
+                    color={color}
+                    setColor={setColor}
+                    strokeWidth={strokeWidth}
+                    setStrokeWidth={setStrokeWidth}
+                    undo={undo}
+                    redo={redo}
+                    clearAnnotations={clearAnnotations}
+                    canUndo={canUndo}
+                    canRedo={canRedo}
+                />
+            )}
+
             <ControlBar
                 screenStream={screenStream}
                 cameraStream={cameraStream}
@@ -503,6 +582,14 @@ const ScreenRecorder = () => {
                 changeCamera={changeCamera}
                 changeMic={changeMic}
                 audioLevel={audioLevel}
+                cursorFxEnabled={cursorFxEnabled}
+                setCursorFxEnabled={setCursorFxEnabled}
+                webcamOnly={webcamOnly}
+                setWebcamOnly={setWebcamOnly}
+                annotationEnabled={annotationEnabled}
+                setAnnotationEnabled={setAnnotationEnabled}
+                zoomEnabled={zoomEnabled}
+                setZoomEnabled={setZoomEnabled}
             />
 
             <div className="mode-info">
