@@ -218,6 +218,39 @@
     opacity: 0.6;
 }
 
+.settings-hint {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    opacity: 0.7;
+}
+
+.settings-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.settings-toggle-btn {
+    padding: 0.35rem 1rem;
+    border-radius: 100px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass);
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 60px;
+    text-align: center;
+}
+
+.settings-toggle-btn.active {
+    background: var(--primary-soft, rgba(139,92,246,0.15));
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
 .btn-sm {
     padding: 0.4rem 0.8rem;
     font-size: 0.75rem;

@@ -17,10 +17,7 @@ export const AIAssistant = ({
     }, [messages]);
 
     useEffect(() => {
-        if (isOpen) {
-            inputRef.current?.focus();
-            onCheckOllama?.();
-        }
+        if (isOpen) { inputRef.current?.focus(); onCheckOllama?.(); }
     }, [isOpen, onCheckOllama]);
 
     const handleSubmit = (e) => {
@@ -39,23 +36,20 @@ export const AIAssistant = ({
 
     return (
         <>
-            {/* Floating trigger button */}
-            <button className={`ai-fab ${isOpen ? 'active' : ''}`} onClick={onToggle} title="AI Assistant">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/>
-                    <circle cx="8.5" cy="14.5" r="1.5"/>
-                    <circle cx="15.5" cy="14.5" r="1.5"/>
-                </svg>
-                {!isOpen && <span className="ai-fab-pulse"></span>}
+            {/* Floating button */}
+            <button className={`ai-fab ${isOpen ? 'ai-fab-active' : ''}`} onClick={onToggle} title="AI Assistant">
+                <span className="ai-fab-icon">AI</span>
+                {ollamaConnected && <span className="ai-fab-status-dot" />}
             </button>
 
-            {/* Chat drawer */}
+            {/* Drawer */}
             {isOpen && (
                 <div className="ai-drawer">
                     <div className="ai-drawer-header">
                         <div className="ai-drawer-header-left">
-                            <span className="ai-drawer-title">AI Assistant</span>
-                            <span className={`ai-drawer-status ${ollamaConnected ? 'connected' : apiKey ? 'api' : 'local'}`}>
+                            <span className="ai-drawer-icon">AI</span>
+                            <span className="ai-drawer-title">ScreenStudio AI</span>
+                            <span className={`ai-drawer-status ${ollamaConnected ? 'connected' : apiKey ? 'connected' : 'local'}`}>
                                 {ollamaConnected ? `Ollama: ${ollamaModel || 'ready'}` : apiKey ? 'API' : 'Local'}
                             </span>
                         </div>
@@ -80,53 +74,36 @@ export const AIAssistant = ({
 
                     {showSettings && (
                         <div className="ai-drawer-settings">
-                            <div className="ai-setting-row">
-                                <span>Ollama</span>
-                                <span className={`ai-status-dot ${ollamaConnected ? 'on' : 'off'}`}></span>
-                                <span className="ai-setting-val">{ollamaConnected ? `Connected` : 'Offline'}</span>
+                            <div className="ai-setting">
+                                <label>Ollama</label>
+                                <span className={ollamaConnected ? 'ai-connected' : 'ai-disconnected'}>
+                                    {ollamaConnected ? `Connected: ${ollamaModel}` : 'Not connected'}
+                                </span>
                                 <button className="ai-drawer-btn-sm" onClick={onCheckOllama}>Refresh</button>
                             </div>
-                            {ollamaConnected && ollamaModels?.length > 0 && (
-                                <div className="ai-setting-row">
-                                    <span>Model</span>
-                                    <select className="ai-setting-select" value={ollamaModel || ''} onChange={() => {}}>
-                                        {ollamaModels.map(m => <option key={m} value={m}>{m}</option>)}
-                                    </select>
-                                </div>
-                            )}
-                            <div className="ai-setting-row">
-                                <span>API Key</span>
+                            <div className="ai-setting">
+                                <label>API Key (OpenAI-compatible)</label>
                                 <input
-                                    className="ai-setting-input"
                                     type="password"
                                     value={apiKey || ''}
                                     onChange={e => onApiKeyChange?.(e.target.value)}
                                     placeholder="sk-..."
+                                    className="ai-setting-input"
                                 />
                             </div>
                         </div>
                     )}
 
                     <div className="ai-drawer-messages">
-                        {messages.length === 0 && (
-                            <div className="ai-drawer-empty">
-                                <p>Ask me to edit your video</p>
-                                <div className="ai-suggestions">
-                                    {['Trim first 5 seconds', 'Add zoom effect', 'Export as MP4', 'Set brightness +20'].map(s => (
-                                        <button key={s} className="ai-suggestion" onClick={() => onSend(s)}>{s}</button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
                         {messages.map((msg, i) => (
-                            <div key={i} className={`ai-msg ${msg.role}`}>
+                            <div key={i} className={`ai-msg ai-msg-${msg.role}`}>
                                 <div className="ai-msg-content">{msg.content}</div>
                             </div>
                         ))}
                         {isProcessing && (
-                            <div className="ai-msg assistant">
-                                <div className="ai-msg-content ai-typing">
-                                    <span></span><span></span><span></span>
+                            <div className="ai-msg ai-msg-assistant">
+                                <div className="ai-msg-content ai-thinking">
+                                    <span className="ai-dot" /><span className="ai-dot" /><span className="ai-dot" />
                                 </div>
                             </div>
                         )}
@@ -139,10 +116,10 @@ export const AIAssistant = ({
                             value={input}
                             onChange={e => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            placeholder="Ask AI to edit..."
+                            placeholder='Try: "trim first 5 seconds" or "help"'
                             disabled={isProcessing}
                         />
-                        <button type="submit" disabled={isProcessing || !input.trim()}>
+                        <button type="submit" disabled={!input.trim() || isProcessing}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
                             </svg>
