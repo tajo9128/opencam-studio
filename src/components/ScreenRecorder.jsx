@@ -352,15 +352,18 @@ const ScreenRecorder = () => {
             }
         }
 
+        // Restore zoom before drawing overlays at normal scale
+        restoreZoom(ctx);
+
+        // Restore zoom before drawing overlays at normal scale
+        restoreZoom(ctx);
+
         // Cursor effects overlay
         drawCursorFx(ctx, canvas.width, canvas.height);
 
         // Annotation overlay
-        annotation.drawAnnotations(ctx);
-
-        // Reset zoom transform
-        zoom.resetZoom(ctx);
-    }, [cameraStream, screenStream, activeBg, webcamScale, screenScale, webcamShape, recordingQuality, webcamOnly, annotationEnabled, zoomEnabled, drawCursorFx, annotation, zoom]);
+        drawAnnotations(ctx);
+    }, [cameraStream, screenStream, activeBg, webcamScale, screenScale, webcamShape, recordingQuality, webcamOnly, annotationEnabled, zoomEnabled, drawCursorFx, drawAnnotations, applyZoom, restoreZoom]);
 
     const launchLoop = useCallback(() => {
         const isCanvasNeeded = cameraStream || activeBg !== 'none' || screenScale < 1.0 || recordingQuality !== 'native' || webcamOnly || cursorFxEnabled || annotationEnabled || zoomEnabled;
@@ -382,7 +385,7 @@ const ScreenRecorder = () => {
             workerRef.current.postMessage({ action: 'setFps', fps: 30 });
             workerRef.current.postMessage({ action: 'start' });
         }
-    }, [cameraStream, activeBg, screenScale, recordingQuality, webcamOnly, cursorFxEnabled, annotationEnabled, renderFrame]);
+    }, [cameraStream, activeBg, screenScale, recordingQuality, webcamOnly, cursorFxEnabled, annotationEnabled, zoomEnabled, renderFrame]);
 
     useEffect(() => {
         launchLoop();
@@ -538,17 +541,17 @@ const ScreenRecorder = () => {
 
             {annotationEnabled && (
                 <AnnotationToolbar
-                    tool={tool}
-                    setTool={setTool}
-                    color={color}
-                    setColor={setColor}
-                    strokeWidth={strokeWidth}
-                    setStrokeWidth={setStrokeWidth}
-                    undo={undo}
-                    redo={redo}
-                    clearAnnotations={clearAnnotations}
-                    canUndo={canUndo}
-                    canRedo={canRedo}
+                    tool={annotation.tool}
+                    setTool={annotation.setTool}
+                    color={annotation.color}
+                    setColor={annotation.setColor}
+                    strokeWidth={annotation.strokeWidth}
+                    setStrokeWidth={annotation.setStrokeWidth}
+                    undo={annotation.undo}
+                    redo={annotation.redo}
+                    clearAnnotations={annotation.clearAnnotations}
+                    canUndo={annotation.hasAnnotations}
+                    canRedo={false}
                 />
             )}
 
