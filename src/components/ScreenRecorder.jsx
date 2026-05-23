@@ -63,6 +63,8 @@ const ScreenRecorder = () => {
     const [zoomEnabled, setZoomEnabled] = useState(false);
     const [chatOpen, setChatOpen] = useState(false);
     const [ytOpen, setYtOpen] = useState(false);
+    const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+    const [activeFilters, setActiveFilters] = useState([]);
 
     const audioLevel = useAudioLevel(audioStream);
     const { drawCursorFx } = useCursorFx(canvasRef, cursorFxEnabled);
@@ -263,7 +265,8 @@ const ScreenRecorder = () => {
         restoreZoom(ctx);
         drawCursorFx(ctx, canvas.width, canvas.height);
         annotation.drawAnnotations(ctx);
-    }, [cameraStream, screenStream, activeBg, webcamScale, screenScale, webcamShape, recordingQuality, webcamOnly, annotationEnabled, zoomEnabled, drawCursorFx, annotation, applyZoom, restoreZoom]);
+        applyFilters(ctx, canvas, activeFilters);
+    }, [cameraStream, screenStream, activeBg, webcamScale, screenScale, webcamShape, recordingQuality, webcamOnly, annotationEnabled, zoomEnabled, drawCursorFx, annotation, applyZoom, restoreZoom, activeFilters]);
 
     const launchLoop = useCallback(() => {
         const isCanvasNeeded = cameraStream || activeBg !== 'none' || screenScale < 1.0 || recordingQuality !== 'native' || webcamOnly || cursorFxEnabled || annotationEnabled || zoomEnabled;
@@ -387,7 +390,8 @@ const ScreenRecorder = () => {
                 webcamOnly={webcamOnly} setWebcamOnly={setWebcamOnly}
                 annotationEnabled={annotationEnabled} setAnnotationEnabled={setAnnotationEnabled}
                 zoomEnabled={zoomEnabled} setZoomEnabled={setZoomEnabled}
-                chatOpen={chatOpen} setChatOpen={setChatOpen} />
+                chatOpen={chatOpen} setChatOpen={setChatOpen}
+                filterPanelOpen={filterPanelOpen} setFilterPanelOpen={setFilterPanelOpen} />
 
             <div className="mode-info">
                 <div className="status-dot" style={{ background: cameraStream ? 'var(--primary)' : 'var(--success)' }}></div>
@@ -419,6 +423,9 @@ const ScreenRecorder = () => {
                 clientId={youtube.clientId} onSetClientId={youtube.setClientId}
                 onAuthenticate={youtube.authenticate} onDisconnect={youtube.disconnect}
                 isUploading={youtube.isUploading} uploadProgress={youtube.uploadProgress} />
+
+            <FilterPanel isOpen={filterPanelOpen} onClose={() => setFilterPanelOpen(false)}
+                activeFilters={activeFilters} setActiveFilters={setActiveFilters} />
 
             <ChatPanel isOpen={chatOpen} onClose={() => setChatOpen(false)}
                 messages={ai.messages} isProcessing={ai.isProcessing} onSend={handleAICommand}

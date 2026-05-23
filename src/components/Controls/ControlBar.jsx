@@ -44,7 +44,9 @@ export const ControlBar = ({
     chatOpen,
     setChatOpen,
     youtubeOpen,
-    setYoutubeOpen
+    setYoutubeOpen,
+    filterPanelOpen,
+    setFilterPanelOpen
 }) => {
     const [activePanel, setActivePanel] = React.useState(null); // 'camera', 'bg', 'quality', 'format'
     const supportedFormats = React.useMemo(() => getSupportedFormats(), []);
@@ -358,6 +360,11 @@ export const ControlBar = ({
                         onClick={() => setYoutubeOpen(!youtubeOpen)}
                         title="Upload to YouTube">
                         📺 YouTube
+                    </button>
+                    <div className="vertical-divider" style={{ width: '1px', background: 'var(--glass-border)', margin: '0 0.2rem' }}></div>
+                    <button className={`btn-pill ${filterPanelOpen ? 'active' : ''}`}
+                        onClick={() => setFilterPanelOpen(!filterPanelOpen)}>
+                        🎨 Filters
                     </button>
                 </div>
 
