@@ -37,15 +37,14 @@ export const useStreams = (screenVideoRef, cameraVideoRef, setStatus) => {
             const settings = track.getSettings();
 
             setScreenDimensions({
-                width: settings.width || width || 1920,
-                height: settings.height || height || 1080
+                width: settings.width || 1920,
+                height: settings.height || 1080
             });
 
             setScreenStream(stream);
             if (screenVideoRef.current) screenVideoRef.current.srcObject = stream;
 
-            // Explicitly play to ensure readyState progresses
-            await screenVideoRef.current?.play().catch(e => console.warn('Screen video play delayed:', e));
+            await screenVideoRef.current?.play().catch(() => {});
 
             track.onended = () => {
                 setScreenStream(null);
@@ -55,7 +54,6 @@ export const useStreams = (screenVideoRef, cameraVideoRef, setStatus) => {
 
             setStatus('ready');
         } catch (err) {
-            console.error('Error starting screen stream:', err);
             alert(`Could not acquire screen: ${err.message}`);
         }
     };
@@ -73,7 +71,6 @@ export const useStreams = (screenVideoRef, cameraVideoRef, setStatus) => {
             setStatus('ready');
             return stream;
         } catch (err) {
-            console.error('Error starting mic stream:', err);
             alert(`Could not acquire microphone: ${err.message}`);
         }
     };
@@ -100,11 +97,10 @@ export const useStreams = (screenVideoRef, cameraVideoRef, setStatus) => {
             setCameraStream(stream);
             if (cameraVideoRef.current) cameraVideoRef.current.srcObject = stream;
 
-            await cameraVideoRef.current?.play().catch(e => console.warn('Camera video play delayed:', e));
+            await cameraVideoRef.current?.play().catch(() => {});
             setStatus('ready');
             return stream;
         } catch (err) {
-            console.error('Error starting camera stream:', err);
             alert(`Could not acquire camera: ${err.message}`);
         }
     };

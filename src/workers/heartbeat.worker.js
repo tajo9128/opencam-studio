@@ -21,14 +21,14 @@ self.onmessage = (e) => {
             self.postMessage({ action: 'tick', timestamp: Date.now() });
         }, interval);
 
-        console.log('Heartbeat Worker: Started at 30fps');
+        // Heartbeat started
     }
     else if (action === 'stop') {
         if (timer) {
             clearInterval(timer);
             timer = null;
         }
-        console.log('Heartbeat Worker: Stopped');
+        // Heartbeat stopped
     }
     else if (action === 'setFps') {
         fps = e.data.fps || 30;

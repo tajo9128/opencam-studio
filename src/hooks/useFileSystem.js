@@ -36,8 +36,8 @@ export const useFileSystem = (showToast, setHighlightedFile) => {
 
                         const url = URL.createObjectURL(thumbBlob);
                         setThumbnailMap(prev => ({ ...prev, [videoName]: url }));
-                    } catch (err) {
-                        console.error('Thumbnail save failed:', err);
+                    } catch {
+                        // Thumbnail save failed
                     }
                     URL.revokeObjectURL(video.src);
                     resolve();
@@ -67,7 +67,7 @@ export const useFileSystem = (showToast, setHighlightedFile) => {
                 await generateThumbnail(videoFile, videoName, dirHandle || directoryHandle);
             }
         } catch (err) {
-            console.warn('Thumbnail engine error:', err);
+            // Thumbnail engine error
         } finally {
             setProcessingQueue(prev => {
                 const next = new Set(prev);
@@ -110,7 +110,7 @@ export const useFileSystem = (showToast, setHighlightedFile) => {
             setLibraryFiles(files.sort((a, b) => b.timestamp - a.timestamp));
             setIsHandleAuthorized(true);
         } catch (err) {
-            console.error('History sync failed:', err);
+            // History sync failed
             if (err.name === 'NotAllowedError') setIsHandleAuthorized(false);
         }
     }, [directoryHandle]);
@@ -123,7 +123,7 @@ export const useFileSystem = (showToast, setHighlightedFile) => {
             await storageManager.setSetting('workspace_handle', handle);
             await syncLibrary(handle);
         } catch (err) {
-            console.warn('Folder connection skipped:', err);
+            // Folder connection skipped
         }
     };
 
@@ -136,7 +136,7 @@ export const useFileSystem = (showToast, setHighlightedFile) => {
                 await syncLibrary(directoryHandle);
             }
         } catch (err) {
-            console.error('Permission request failed:', err);
+            // Permission request failed
         }
     };
 
@@ -192,7 +192,7 @@ export const useFileSystem = (showToast, setHighlightedFile) => {
                     throw new Error('MOVE_UNSUPPORTED');
                 }
             } catch (moveErr) {
-                console.warn('Native move() failed or unsupported, using copy fallback:', moveErr);
+                // Native move() failed, using copy fallback
                 await performManualMove(fileHandle, finalName, directoryHandle);
             }
 
@@ -225,13 +225,13 @@ export const useFileSystem = (showToast, setHighlightedFile) => {
                     });
                 } catch { /* No thumbnail */ }
             } catch (err) {
-                console.warn('Thumbnail rename context error:', err);
+                // Thumbnail rename context error
             }
 
             setEditingFileName(null);
             syncLibrary();
         } catch (err) {
-            console.error('Rename failed:', err);
+            // Rename failed
             showToast('Error', `Rename failed: ${err.message}`, 'error');
         }
     };
@@ -262,7 +262,7 @@ export const useFileSystem = (showToast, setHighlightedFile) => {
             showToast('Success', 'Recording deleted from disk', 'success');
             syncLibrary();
         } catch (err) {
-            console.error('Delete failed:', err);
+            // Delete failed
             showToast('Error', 'Failed to delete file', 'error');
         }
     };

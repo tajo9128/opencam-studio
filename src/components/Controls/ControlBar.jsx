@@ -31,7 +31,8 @@ export const ControlBar = ({
     recordingFormat,
     setRecordingFormat,
     changeCamera,
-    changeMic
+    changeMic,
+    audioLevel = 0
 }) => {
     const [activePanel, setActivePanel] = React.useState(null); // 'camera', 'bg', 'quality', 'format'
     const supportedFormats = React.useMemo(() => getSupportedFormats(), []);
@@ -54,7 +55,7 @@ export const ControlBar = ({
             }));
             return cameras;
         } catch (error) {
-            console.error("Failed to enumerate devices:", error);
+            // Enumerate devices failed
         }
     };
 
@@ -70,7 +71,7 @@ export const ControlBar = ({
                                 <span className="setting-label">Webcam Frame</span>
                                 <div style={{ display: 'flex', gap: '0.4rem' }}>
                                     {['circle', 'rounded-rect', 'square'].map(s => (
-                                        <button key={s} onClick={() => { console.log('Shape clicked:', s); setWebcamShape(s); }}
+                                        <button key={s} onClick={() => setWebcamShape(s)}
                                             className={`btn-icon ${webcamShape === s ? 'active' : ''}`}
                                             title={s}>
                                             <div className={`shape-preview ${s}`}></div>
@@ -97,7 +98,7 @@ export const ControlBar = ({
                                         { label: 'M', val: 0.40 },
                                         { label: 'L', val: 0.55 }
                                     ].map(s => (
-                                        <button key={s.label} onClick={() => { console.log('Size clicked:', s.val); setWebcamScale(s.val); }}
+                                        <button key={s.label} onClick={() => setWebcamScale(s.val)}
                                             className={`btn-small ${webcamScale === s.val ? 'active' : ''}`}>
                                             {s.label}
                                         </button>
@@ -119,7 +120,7 @@ export const ControlBar = ({
                                 }}>
                                     {BACKGROUND_PRESETS.map(p => (
                                         <button key={p.id}
-                                            onClick={() => { console.log('BG clicked:', p.id); setActiveBg(p.id); }}
+                                            onClick={() => setActiveBg(p.id)}
                                             className={`btn-icon ${activeBg === p.id ? 'active' : ''}`}
                                             title={p.name}
                                             style={{
@@ -145,7 +146,7 @@ export const ControlBar = ({
                                         { label: 'Framed View', val: 0.90, desc: 'Elegant margins' },
                                         { label: 'Compact', val: 0.82, desc: 'Focus on webcam' }
                                     ].map(s => (
-                                        <button key={s.label} onClick={() => { console.log('Layout clicked:', s.val); setScreenScale(s.val); }}
+                                        <button key={s.label} onClick={() => setScreenScale(s.val)}
                                             className={`btn-small ${screenScale === s.val ? 'active' : ''}`}
                                             style={{ justifyContent: 'space-between', padding: '0.6rem 1rem', width: '100%' }}>
                                             <span>{s.label}</span>
@@ -163,7 +164,7 @@ export const ControlBar = ({
                                 <span className="setting-label">Recording Quality</span>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                                     {Object.entries(qualityPresets).map(([key, val]) => (
-                                        <button key={key} onClick={() => { console.log('Quality clicked:', key); setRecordingQuality(key); }}
+                                        <button key={key} onClick={() => setRecordingQuality(key)}
                                             className={`btn-small ${recordingQuality === key ? 'active' : ''}`}>
                                             {val.label}
                                         </button>
@@ -179,7 +180,7 @@ export const ControlBar = ({
                                 <span className="setting-label">Export Format</span>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                                     {supportedFormats.map(f => (
-                                        <button key={f.id} onClick={() => { console.log('Format clicked:', f.id); setRecordingFormat(f.id); }}
+                                        <button key={f.id} onClick={() => setRecordingFormat(f.id)}
                                             className={`btn-small ${recordingFormat === f.id ? 'active' : ''}`}>
                                             {f.label}
                                         </button>
@@ -189,7 +190,7 @@ export const ControlBar = ({
                         </div>
                     )}
 
-                    <button className="popover-close" onClick={() => { console.log('Closing panel'); setActivePanel(null); }}>✕</button>
+                    <button className="popover-close" onClick={() => setActivePanel(null)}>x</button>
                 </div>
             )}
 
@@ -255,6 +256,20 @@ export const ControlBar = ({
                                 }
                             }} disabled={isRecording}>
                             {audioStream ? '● Mic' : 'Mic'}
+                            {audioStream && (
+                                <span style={{
+                                    display: 'inline-block',
+                                    width: '4px',
+                                    height: '16px',
+                                    background: `var(--primary)`,
+                                    opacity: 0.3 + audioLevel * 0.7,
+                                    borderRadius: '2px',
+                                    marginLeft: '4px',
+                                    verticalAlign: 'middle',
+                                    transform: `scaleY(${0.3 + audioLevel * 0.7})`,
+                                    transition: 'transform 0.05s, opacity 0.05s'
+                                }}></span>
+                            )}
                         </button>
                         <button className="dropDownBtn" onClick={() => {
                             setShowMicOptions(!showMicOptions)
@@ -306,18 +321,21 @@ export const ControlBar = ({
                                         setActivePanel(null);
                                         startRecording();
                                     }}
-                                    disabled={!screenStream && !cameraStream}>
+                                    disabled={!screenStream && !cameraStream}
+                                    title="Space to start/stop">
                                     Start Recording
                                 </button>
                             ) : (
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                                     <button className={`btn ${isPaused ? 'btn-primary' : 'btn-outline'}`}
                                         onClick={isPaused ? resumeRecording : pauseRecording}
-                                        style={{ minWidth: '100px', justifyContent: 'center' }}>
-                                        {isPaused ? '▶ Resume' : '⏸ Pause'}
+                                        style={{ minWidth: '100px', justifyContent: 'center' }}
+                                        title="P to pause/resume">
+                                        {isPaused ? 'Resume' : 'Pause'}
                                     </button>
                                     <button className="btn btn-danger"
-                                        onClick={stopRecording}>
+                                        onClick={stopRecording}
+                                        title="Space to stop">
                                         Stop
                                     </button>
                                 </div>

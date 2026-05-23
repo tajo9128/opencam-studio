@@ -1,11 +1,7 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import ScreenRecorder from './components/ScreenRecorder';
 import LandingPage from './components/LandingPage/LandingPage';
-import BlogList from './components/Blog/BlogList';
-import BlogPost from './components/Blog/BlogPost';
-import ComparisonPage from './components/Marketing/ComparisonPage';
-import { PrivacyPolicy, TermsOfService } from './components/Legal/LegalPages';
 import { Analytics } from '@vercel/analytics/react';
 import { ThemeProvider, useTheme } from './context/ThemeContext.jsx';
 import ThemeToggle from './components/ThemeToggle/ThemeToggle';
@@ -13,8 +9,6 @@ import './index.css';
 
 const NavigationHeader = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const isBlogPage = location.pathname.startsWith('/blog');
 
   return (
     <header style={{
@@ -42,8 +36,8 @@ const NavigationHeader = () => {
           fontSize: '1.5rem',
           fontWeight: 'bold',
           color: 'white'
-        }}>G</div>
-        <h1 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Gravity Recorder</h1>
+        }}>S</div>
+        <h1 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>ScreenStudio</h1>
       </div>
       <ThemeToggle />
     </header>
@@ -63,36 +57,6 @@ function App() {
                 <main>
                   <ScreenRecorder />
                 </main>
-              </>
-            } />
-            <Route path="/blog" element={
-              <>
-                <NavigationHeader />
-                <BlogList />
-              </>
-            } />
-            <Route path="/blog/:slug" element={
-              <>
-                <NavigationHeader />
-                <BlogPost />
-              </>
-            } />
-            <Route path="/:competitor-alternative" element={
-              <>
-                <NavigationHeader />
-                <ComparisonPage />
-              </>
-            } />
-            <Route path="/privacy" element={
-              <>
-                <NavigationHeader />
-                <PrivacyPolicy />
-              </>
-            } />
-            <Route path="/terms" element={
-              <>
-                <NavigationHeader />
-                <TermsOfService />
               </>
             } />
           </Routes>

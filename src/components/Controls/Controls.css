@@ -14,7 +14,7 @@
 }
   .dropDownElement{
     margin: 5px;
-    color: #94a3b8!important;
+    color: var(--text-muted)!important;
     width: 100%;
     border: 0;
     height: 3.3rem;
@@ -27,7 +27,7 @@
 .dropDownMenu{
   position: absolute;
   top: 4rem;
-  background: #1f2537;
+  background: var(--bg-card);
   border-radius: 10px;
   padding: 0.8rem;
   z-index: 20;

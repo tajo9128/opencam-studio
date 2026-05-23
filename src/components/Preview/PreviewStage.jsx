@@ -2,10 +2,8 @@ import React from 'react';
 
 export const PreviewStage = ({
     canvasRef,
-    screenVideoRef,
-    cameraVideoRef,
-    cameraStream,
     screenStream,
+    cameraStream,
     activeBg,
     screenScale,
     recordingQuality,
@@ -15,9 +13,9 @@ export const PreviewStage = ({
     currentDimensions = { width: 0, height: 0 },
     handleMouseDown,
     handleMouseMove,
-    handleMouseUp
+    handleMouseUp,
+    elapsedTime
 }) => {
-    // Determine if we should show the Canvas or the Direct Video Feed
     const useCanvas = cameraStream || activeBg !== 'none' || (screenScale && screenScale < 1.0) || (recordingQuality && recordingQuality !== 'native');
     const showPlaceholder = !cameraStream && !screenStream;
 
@@ -30,6 +28,7 @@ export const PreviewStage = ({
             }
         }
     }, [screenStream, useCanvas]);
+
     return (
         <div className={`preview-wrapper ${isRecording ? 'is-recording' : ''}`}>
             {countdown !== null && (
@@ -38,7 +37,6 @@ export const PreviewStage = ({
                 </div>
             )}
 
-            {/* 1. Canvas Mode: Show when using Webcam, Backgrounds, or Frames */}
             <canvas
                 ref={canvasRef}
                 className="preview-canvas"
@@ -63,19 +61,19 @@ export const PreviewStage = ({
             )}
 
             {showPlaceholder && (
-                <div className="preview-placeholder">Sources Inactive — Enable Screen or Camera to start</div>
+                <div className="preview-placeholder">Sources Inactive - Enable Screen or Camera to start</div>
             )}
 
             {status === 'recording' && (
                 <div className="status-badge status-recording">
                     <span className="status-dot"></span>
-                    REC {useCanvas ? 'CANVAS' : 'DIRECT'}
+                    REC {useCanvas ? 'CANVAS' : 'DIRECT'} {elapsedTime && `| ${elapsedTime}`}
                 </div>
             )}
 
             {(cameraStream || screenStream) && currentDimensions?.width > 0 && (
                 <div className="resolution-badge">
-                    {currentDimensions.width} × {currentDimensions.height}
+                    {currentDimensions.width} x {currentDimensions.height}
                 </div>
             )}
         </div>

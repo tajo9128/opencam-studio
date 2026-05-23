@@ -9,7 +9,6 @@ class MediaManager {
                 audio: true
             });
         } catch (err) {
-            console.error("Error getting screen stream:", err);
             throw err;
         }
     }
@@ -30,7 +29,6 @@ class MediaManager {
                 }
             });
         } catch (err) {
-            console.error("Error getting camera stream:", err);
             throw err;
         }
     }
@@ -47,7 +45,6 @@ class MediaManager {
                 video: false
             });
         } catch (err) {
-            console.error("Error getting audio stream:", err);
             throw err;
         }
     }

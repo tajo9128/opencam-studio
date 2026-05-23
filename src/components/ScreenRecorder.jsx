@@ -3,8 +3,8 @@ import { storageManager } from '../utils/StorageManager';
 import { BACKGROUND_PRESETS } from '../constants/backgrounds';
 import { useStreams } from '../hooks/useStreams';
 import { useFileSystem } from '../hooks/useFileSystem';
-import { useGoogleSync } from '../hooks/useGoogleSync';
 import { useRecording } from '../hooks/useRecording';
+import { useAudioLevel } from '../hooks/useAudioLevel';
 import { EXPORT_FORMATS, getDefaultFormat } from '../constants/formats';
 
 // UI Components
@@ -23,7 +23,6 @@ const QUALITY_PRESETS = {
 };
 
 const ScreenRecorder = () => {
-    // Refs for Media & Stage
     const canvasRef = useRef(null);
     const screenVideoRef = useRef(null);
     const cameraVideoRef = useRef(null);
@@ -47,6 +46,8 @@ const ScreenRecorder = () => {
     const [pendingRecording, setPendingRecording] = useState(null);
     const [recordingFormat, setRecordingFormat] = useState(getDefaultFormat());
     const [countdown, setCountdown] = useState(null);
+    const [elapsedTime, setElapsedTime] = useState(0);
+    const audioLevel = useAudioLevel(audioStream);
 
     const showToast = useCallback((title, message, type = 'info') => {
         setToast({ title, message, type });
@@ -56,8 +57,8 @@ const ScreenRecorder = () => {
     const {
         directoryHandle, setDirectoryHandle,
         isHandleAuthorized, setIsHandleAuthorized,
-        libraryFiles, setLibraryFiles,
-        thumbnailMap, setThumbnailMap,
+        libraryFiles,
+        thumbnailMap,
         editingFileName, setEditingFileName,
         newName, setNewName,
         selectedVideoUrl, setSelectedVideoUrl,
@@ -65,12 +66,6 @@ const ScreenRecorder = () => {
         playVideo, startRename, handleRename, deleteFile,
         generateThumbnail, getThumbnailUrl
     } = useFileSystem(showToast, setHighlightedFile);
-
-    const {
-        googleToken, cloudUser, cloudRegistry, uploadProgress,
-        handleGoogleAuth, handleLogout, uploadToDrive, auditCloudRegistry,
-        loadCloudMetadata, saveCloudMetadata
-    } = useGoogleSync(showToast, directoryHandle);
 
     const handleRecordingComplete = useCallback((blob, mimeType) => {
         if (!blob) {
@@ -103,19 +98,18 @@ const ScreenRecorder = () => {
                 showToast(`Saved to ${directoryHandle.name}`, fileName, 'success');
                 setHighlightedFile(fileName);
 
-                // Background thumbnail generation to prevent UI block
                 generateThumbnail(blob, fileName, directoryHandle).then(() => {
                     syncLibrary(directoryHandle);
                 });
 
                 setTimeout(() => setHighlightedFile(null), 5000);
             } catch (err) {
-                console.error('Save failed:', err);
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
                 a.download = fileName;
                 a.click();
+                URL.revokeObjectURL(url);
                 showToast('Direct save failed', 'Download triggered as fallback', 'error');
             }
         } else {
@@ -124,6 +118,7 @@ const ScreenRecorder = () => {
             a.href = url;
             a.download = fileName;
             a.click();
+            URL.revokeObjectURL(url);
             showToast('Recording Saved', 'Check your downloads folder', 'success');
         }
         setPendingRecording(null);
@@ -133,8 +128,8 @@ const ScreenRecorder = () => {
     const webcamPos = useRef({ x: 20, y: 410 });
     const isDragging = useRef(false);
     const dragOffset = useRef({ x: 0, y: 0 });
-    const drawTimerRef = useRef(null);
     const countdownTimerRef = useRef(null);
+    const elapsedTimerRef = useRef(null);
 
     // Initialize hidden video elements
     useEffect(() => {
@@ -151,10 +146,38 @@ const ScreenRecorder = () => {
         return () => handleStopAll();
     }, []);
 
+    // Recording timer
+    useEffect(() => {
+        if (isRecording && !isPaused) {
+            elapsedTimerRef.current = setInterval(() => {
+                setElapsedTime(prev => prev + 1);
+            }, 1000);
+        } else {
+            if (elapsedTimerRef.current) {
+                clearInterval(elapsedTimerRef.current);
+                elapsedTimerRef.current = null;
+            }
+        }
+        return () => {
+            if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current);
+        };
+    }, [isRecording, isPaused]);
+
+    // Reset timer when recording stops
+    useEffect(() => {
+        if (!isRecording) setElapsedTime(0);
+    }, [isRecording]);
+
+    const formatTime = (seconds) => {
+        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const s = (seconds % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    };
+
     const handleStopAll = () => {
-        if (drawTimerRef.current) clearTimeout(drawTimerRef.current);
         if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
         setCountdown(null);
+        setElapsedTime(0);
         resetRecording();
         stopStreams();
         setActiveBg('none');
@@ -163,9 +186,7 @@ const ScreenRecorder = () => {
 
     const [currentDimensions, setCurrentDimensions] = useState({ width: 0, height: 0 });
 
-    const lastDrawTimeRef = useRef(0);
-
-    // 1. Sync Canvas Dimensions (Logic only runs when streams/quality change)
+    // 1. Sync Canvas Dimensions
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -212,15 +233,11 @@ const ScreenRecorder = () => {
         const isCanvasNeeded = cameraStream || activeBg !== 'none' || screenScale < 1.0 || (recordingQuality && recordingQuality !== 'native');
         if (!isCanvasNeeded) return;
 
-        // Pre-calculate expensive layout values only when needed
         const bubbleSize = canvas.height * webcamScale;
         const { x, y } = webcamPos.current;
 
-        // 1. Draw Background
         const preset = BACKGROUND_PRESETS.find(p => p.id === activeBg);
         if (preset && preset.colors) {
-            // Caching gradient would be better, but creating a simple linear one is relatively fast.
-            // For max performance, we create it once per frame.
             const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
             preset.colors.forEach((c, i) => grad.addColorStop(i / (preset.colors.length - 1), c));
             ctx.fillStyle = grad;
@@ -230,7 +247,6 @@ const ScreenRecorder = () => {
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
-        // 2. Draw Screen
         if (screenStream && screenVideoRef.current.readyState >= 2) {
             const videoData = screenVideoRef.current;
             const vWidth = videoData.videoWidth;
@@ -264,7 +280,6 @@ const ScreenRecorder = () => {
             }
         }
 
-        // 3. Draw Camera Bubble
         if (cameraStream && cameraVideoRef.current.readyState >= 2) {
             const webcamVideo = cameraVideoRef.current;
             const vWidth = webcamVideo.videoWidth;
@@ -295,7 +310,7 @@ const ScreenRecorder = () => {
                 ctx.drawImage(webcamVideo, dx, dy, dw, dh);
             }
         }
-    }, [cameraStream, screenStream, activeBg, webcamScale, screenScale, webcamShape, cameraVideoRef, recordingQuality]);
+    }, [cameraStream, screenStream, activeBg, webcamScale, screenScale, webcamShape, recordingQuality]);
 
     const launchLoop = useCallback(() => {
         const isCanvasNeeded = cameraStream || activeBg !== 'none' || screenScale < 1.0 || recordingQuality !== 'native';
@@ -316,7 +331,6 @@ const ScreenRecorder = () => {
 
             workerRef.current.postMessage({ action: 'setFps', fps: 30 });
             workerRef.current.postMessage({ action: 'start' });
-            console.log('Background Heartbeat: Online');
         }
     }, [cameraStream, activeBg, screenScale, recordingQuality, renderFrame]);
 
@@ -371,9 +385,9 @@ const ScreenRecorder = () => {
 
     useEffect(() => {
         if (isHistoryOpen && directoryHandle) {
-            syncLibrary(directoryHandle, { googleToken, auditCloudRegistry, loadCloudMetadata });
+            syncLibrary(directoryHandle);
         }
-    }, [isHistoryOpen, directoryHandle, googleToken, auditCloudRegistry, loadCloudMetadata, syncLibrary]);
+    }, [isHistoryOpen, directoryHandle, syncLibrary]);
 
     const startRecording = useCallback(() => {
         if (isRecording || countdown !== null) return;
@@ -393,13 +407,47 @@ const ScreenRecorder = () => {
         }, 1000);
     }, [isRecording, countdown, startMediaRecording]);
 
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            // Don't trigger if user is typing in an input
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (isRecording) {
+                    stopRecording();
+                } else if (countdown === null) {
+                    startRecording();
+                }
+            } else if (e.code === 'KeyP' && isRecording) {
+                e.preventDefault();
+                if (isPaused) {
+                    resumeRecording();
+                } else {
+                    pauseRecording();
+                }
+            } else if (e.code === 'Escape' && countdown !== null) {
+                e.preventDefault();
+                if (countdownTimerRef.current) {
+                    clearInterval(countdownTimerRef.current);
+                    countdownTimerRef.current = null;
+                }
+                setCountdown(null);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isRecording, isPaused, countdown, startRecording, stopRecording, pauseRecording, resumeRecording]);
+
     return (
         <div className="recorder-container">
             <header className="header-section" style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ visibility: 'hidden' }}>Spacer</div>
                 <div style={{ textAlign: 'center' }}>
-                    <h1>Screen Studio</h1>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Premium Recording Syncing with your PC</p>
+                    <h1>ScreenStudio</h1>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Record your screen with webcam overlay</p>
                 </div>
                 <button className="btn btn-outline" onClick={() => setIsHistoryOpen(!isHistoryOpen)}>
                     History {libraryFiles.length > 0 && `(${libraryFiles.length})`}
@@ -422,6 +470,7 @@ const ScreenRecorder = () => {
                 handleMouseDown={handleMouseDown}
                 handleMouseMove={handleMouseMove}
                 handleMouseUp={handleMouseUp}
+                elapsedTime={formatTime(elapsedTime)}
             />
 
             <ControlBar
@@ -453,23 +502,24 @@ const ScreenRecorder = () => {
                 handleStopAll={handleStopAll}
                 changeCamera={changeCamera}
                 changeMic={changeMic}
+                audioLevel={audioLevel}
             />
 
             <div className="mode-info">
                 <div className="status-dot" style={{ background: cameraStream ? 'var(--primary)' : 'var(--success)' }}></div>
                 <span>Current Mode: {cameraStream ? 'Optimized Canvas' : 'Direct Hardware'}</span>
+                <span style={{ marginLeft: '1rem', opacity: 0.5, fontSize: '0.7rem' }}>
+                    Space: record/stop | P: pause | Esc: cancel
+                </span>
             </div>
 
             <footer style={{ marginTop: 'auto', paddingTop: '4rem', color: 'var(--text-muted)', fontSize: '0.75rem', width: '100%', maxWidth: '600px', textAlign: 'center', lineHeight: '1.5' }}>
-                <p>© 2026 Gravity Labs. Built for performance and resilience.</p>
+                <p>ScreenStudio &mdash; Free &amp; Open Source</p>
             </footer>
 
             <HistorySidebar
                 isHistoryOpen={isHistoryOpen}
                 setIsHistoryOpen={setIsHistoryOpen}
-                cloudUser={cloudUser}
-                handleGoogleAuth={handleGoogleAuth}
-                handleLogout={handleLogout}
                 directoryHandle={directoryHandle}
                 isHandleAuthorized={isHandleAuthorized}
                 connectFolder={connectFolder}
@@ -484,9 +534,6 @@ const ScreenRecorder = () => {
                 setNewName={setNewName}
                 handleRename={handleRename}
                 setEditingFileName={setEditingFileName}
-                uploadProgress={uploadProgress}
-                cloudRegistry={cloudRegistry}
-                uploadToDrive={uploadToDrive}
                 startRename={startRename}
                 deleteFile={deleteFile}
             />
