@@ -22,6 +22,13 @@ export const StreamMode = () => {
     const streaming = useStreaming();
     const replay = useReplayBuffer();
 
+    // Cleanup streams on unmount when not recording/streaming
+    useEffect(() => {
+        return () => {
+            if (!recording.isRecording && !streaming.isStreaming) streams.stopAll?.();
+        };
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
     // Guard against accidental page close during streaming/recording
     useEffect(() => {
         const active = recording.isRecording || streaming.isStreaming;
