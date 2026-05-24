@@ -119,6 +119,11 @@ const ScreenRecorder = () => {
         onComplete: handleRecordingComplete
     });
 
+    // Cleanup streams on unmount when not recording
+    useEffect(() => {
+        return () => { if (!isRecording) stopStreams(); };
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
     // AI command handler
     const handleAICommand = useCallback(async (input) => {
         const command = await ai.sendMessage(input);
