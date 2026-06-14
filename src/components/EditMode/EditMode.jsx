@@ -42,9 +42,15 @@ export const EditMode = () => {
     const { applyZoom, restoreZoom, setZoomLevel, setPanOffset } = useZoom(canvasRef, zoomEnabled);
     const ai = useAI();
     const overlays = useOverlays();
-    const streams = useStreams();
-    const recording = useRecording();
-    const _audioLevel = useAudioLevel(streams.audioStream);
+    const streams = useStreams(screenVideoRef, cameraVideoRef, () => {});
+    const recording = useRecording({
+        screenStream: streams?.screenStream,
+        cameraStream: streams?.cameraStream,
+        activeBg,
+        screenScale,
+        canvasRef,
+    });
+    const _audioLevel = useAudioLevel(streams?.audioStream);
 
     const selectedClip = timeline.clips.find(c => c.id === timeline.selectedClipId);
 

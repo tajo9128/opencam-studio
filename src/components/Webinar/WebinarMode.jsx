@@ -12,6 +12,8 @@ import './WebinarMode.css';
 
 export const WebinarMode = () => {
     const canvasRef = useRef(null);
+    const screenVideoRef = useRef(null);
+    const cameraVideoRef = useRef(null);
     const [showStreamPanel, setShowStreamPanel] = useState(false);
     const [showMixer, setShowMixer] = useState(false);
     const [showLowerThird, setShowLowerThird] = useState(true);
@@ -21,8 +23,12 @@ export const WebinarMode = () => {
     const [showQna, setShowQna] = useState(false);
 
     const scenes = useScenes();
-    const streams = useStreams();
-    const recording = useRecording();
+    const streams = useStreams(screenVideoRef, cameraVideoRef, () => {});
+    const recording = useRecording({
+        screenStream: streams?.screenStream,
+        cameraStream: streams?.cameraStream,
+        canvasRef,
+    });
     const streaming = useStreaming();
     const replay = useReplayBuffer();
 
