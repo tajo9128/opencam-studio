@@ -42,6 +42,17 @@ export const StreamMode = () => {
     const [bgMode, setBgMode] = useState('none');
     const [bgImage, setBgImage] = useState(null);
 
+    // Presenter tools
+    const [lowerThirdName, setLowerThirdName] = useState('');
+    const [lowerThirdTitle, setLowerThirdTitle] = useState('');
+    const [showLowerThird, setShowLowerThird] = useState(false);
+    const [speakerNotes, setSpeakerNotes] = useState('');
+    const [speakerTimer, setSpeakerTimer] = useState(0);
+    const [speakerTimerRunning, setSpeakerTimerRunning] = useState(false);
+    const [teleprompterText, setTeleprompterText] = useState('');
+    const [teleprompterSpeed, setTeleprompterSpeed] = useState(30);
+    const [teleprompterActive, setTeleprompterActive] = useState(false);
+
     const scenes = useScenes();
     const streams = useStreams(screenVideoRef, cameraVideoRef, () => {});
     const audioLevel = useAudioLevel(streams?.audioStream);
@@ -67,6 +78,13 @@ export const StreamMode = () => {
         const interval = setInterval(() => setRecTime(t => t + 1), 1000);
         return () => clearInterval(interval);
     }, [recording.isRecording]);
+
+    // Speaker timer
+    useEffect(() => {
+        if (!speakerTimerRunning) return;
+        const interval = setInterval(() => setSpeakerTimer(t => t + 1), 1000);
+        return () => clearInterval(interval);
+    }, [speakerTimerRunning]);
 
     // Cleanup streams on unmount
     useEffect(() => {
@@ -94,7 +112,8 @@ export const StreamMode = () => {
     // Canvas render loop
     const scenesRef = useRef(scenes);
     const streamsRef = useRef(streams);
-    useEffect(() => { scenesRef.current = scenes; streamsRef.current = streams; });
+    const overlayRef = useRef({ brandLogo, bannerVisible, bannerText, brandColor, showLowerThird, lowerThirdName, lowerThirdTitle });
+    useEffect(() => { scenesRef.current = scenes; streamsRef.current = streams; overlayRef.current = { brandLogo, bannerVisible, bannerText, brandColor, showLowerThird, lowerThirdName, lowerThirdTitle }; });
 
     useEffect(() => {
         let running = true;
@@ -103,28 +122,45 @@ export const StreamMode = () => {
             const canvas = canvasRef.current;
             if (canvas) {
                 const ctx = canvas.getContext('2d');
-                const s = scenesRef.current;
-                s.renderScene(ctx, canvas, s.activeScene, streamsRef.current);
+                scenesRef.current.renderScene(ctx, canvas, scenesRef.current.activeScene, streamsRef.current);
 
-                // Branding overlays
-                if (brandLogo) {
+                const o = overlayRef.current;
+                // Logo
+                if (o.brandLogo) {
                     const img = new Image();
-                    img.src = brandLogo;
-                    if (img.complete) {
-                        ctx.drawImage(img, canvas.width - 220, 20, 200, 60);
-                    }
+                    img.src = o.brandLogo;
+                    if (img.complete) ctx.drawImage(img, canvas.width - 220, 20, 200, 60);
                 }
-                if (bannerVisible && bannerText) {
+                // Banner
+                if (o.bannerVisible && o.bannerText) {
                     ctx.save();
-                    ctx.fillStyle = `rgba(0,0,0,0.8)`;
+                    ctx.fillStyle = 'rgba(0,0,0,0.8)';
                     ctx.fillRect(0, canvas.height - 80, canvas.width, 60);
-                    ctx.fillStyle = brandColor;
+                    ctx.fillStyle = o.brandColor;
                     ctx.fillRect(0, canvas.height - 80, 6, 60);
                     ctx.fillStyle = '#ffffff';
                     ctx.font = 'bold 28px Outfit, sans-serif';
                     ctx.textBaseline = 'middle';
-                    const text = bannerText.slice(0, 80);
-                    ctx.fillText(text, 24, canvas.height - 50);
+                    ctx.fillText(o.bannerText.slice(0, 80), 24, canvas.height - 50);
+                    ctx.restore();
+                }
+                // Lower third
+                if (o.showLowerThird && (o.lowerThirdName || o.lowerThirdTitle)) {
+                    const barH = 80, barW = 6;
+                    ctx.save();
+                    ctx.fillStyle = 'rgba(0,0,0,0.8)';
+                    ctx.fillRect(0, canvas.height - barH, canvas.width, barH);
+                    ctx.fillStyle = o.brandColor;
+                    ctx.fillRect(0, canvas.height - barH, barW, barH);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 32px Outfit, sans-serif';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(o.lowerThirdName || '', barW + 16, canvas.height - barH + 28);
+                    if (o.lowerThirdTitle) {
+                        ctx.fillStyle = o.brandColor;
+                        ctx.font = '18px Outfit, sans-serif';
+                        ctx.fillText(o.lowerThirdTitle, barW + 16, canvas.height - barH + 56);
+                    }
                     ctx.restore();
                 }
             }
@@ -132,7 +168,7 @@ export const StreamMode = () => {
         };
         loop();
         return () => { running = false; };
-    }, [brandLogo, bannerVisible, bannerText, brandColor]);
+    }, []);
 
     // Auto-set first scene active
     useEffect(() => {
@@ -241,8 +277,8 @@ export const StreamMode = () => {
                 <aside className="stream-left-panel">
                     <div className="stream-left-tabs">
                         <button className={leftTab === 'scenes' ? 'active' : ''} onClick={() => setLeftTab('scenes')}>Scenes</button>
+                        <button className={leftTab === 'presenter' ? 'active' : ''} onClick={() => setLeftTab('presenter')}>Presenter</button>
                         <button className={leftTab === 'branding' ? 'active' : ''} onClick={() => setLeftTab('branding')}>Brand</button>
-                        <button className={leftTab === 'banners' ? 'active' : ''} onClick={() => setLeftTab('banners')}>Banners</button>
                     </div>
 
                     <div className="stream-left-content">
@@ -294,6 +330,63 @@ export const StreamMode = () => {
                                             <button key={c} className="stream-color-swatch" style={{ background: c }} onClick={() => setBrandColor(c)} />
                                         ))}
                                     </div>
+                                </div>
+                                <div className="stream-brand-section">
+                                    <label className="stream-brand-label">Banner Ticker</label>
+                                    <input type="text" className="stream-banner-input" value={bannerText}
+                                        onChange={e => setBannerText(e.target.value)} placeholder="Enter banner text..." maxLength={80} />
+                                    <button className={`stream-banner-toggle ${bannerVisible ? 'active' : ''}`}
+                                        onClick={() => setBannerVisible(!bannerVisible)} disabled={!bannerText}
+                                        style={{ marginTop: '0.3rem' }}>
+                                        {bannerVisible ? 'Hide Banner' : 'Show Banner'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {leftTab === 'presenter' && (
+                            <div className="stream-presenter-panel">
+                                <div className="stream-section-label">Lower Third</div>
+                                <div className="stream-ppt-field">
+                                    <label>
+                                        <input type="checkbox" checked={showLowerThird} onChange={e => setShowLowerThird(e.target.checked)}
+                                            style={{ width: 'auto', marginRight: '0.4rem' }} />
+                                        Show overlay
+                                    </label>
+                                </div>
+                                <input type="text" className="stream-banner-input" value={lowerThirdName}
+                                    onChange={e => setLowerThirdName(e.target.value)} placeholder="Speaker Name" style={{ marginBottom: '0.3rem' }} />
+                                <input type="text" className="stream-banner-input" value={lowerThirdTitle}
+                                    onChange={e => setLowerThirdTitle(e.target.value)} placeholder="Title / Role" />
+
+                                <div className="stream-section-label" style={{ marginTop: '0.75rem' }}>Teleprompter</div>
+                                <textarea className="stream-textarea" value={teleprompterText}
+                                    onChange={e => setTeleprompterText(e.target.value)}
+                                    placeholder="Paste your script here..." rows={4} />
+                                <div className="stream-ppt-row">
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Speed</span>
+                                    <input type="range" min={10} max={60} value={teleprompterSpeed}
+                                        onChange={e => setTeleprompterSpeed(Number(e.target.value))} style={{ flex: 1 }} />
+                                </div>
+                                <button className={`stream-banner-toggle ${teleprompterActive ? 'active' : ''}`}
+                                    onClick={() => setTeleprompterActive(!teleprompterActive)} disabled={!teleprompterText}>
+                                    {teleprompterActive ? 'Stop Prompter' : 'Start Prompter'}
+                                </button>
+
+                                <div className="stream-section-label" style={{ marginTop: '0.75rem' }}>Speaker Notes</div>
+                                <textarea className="stream-textarea" value={speakerNotes}
+                                    onChange={e => setSpeakerNotes(e.target.value)}
+                                    placeholder="Private notes for the speaker..." rows={3} />
+
+                                <div className="stream-section-label" style={{ marginTop: '0.75rem' }}>Speaker Timer</div>
+                                <div className="stream-timer-display">{fmtTime(speakerTimer)}</div>
+                                <div className="stream-ppt-row">
+                                    <button className="stream-banner-toggle" onClick={() => setSpeakerTimerRunning(!speakerTimerRunning)}>
+                                        {speakerTimerRunning ? 'Pause' : 'Start'}
+                                    </button>
+                                    <button className="stream-banner-toggle" onClick={() => { setSpeakerTimer(0); setSpeakerTimerRunning(false); }}>
+                                        Reset
+                                    </button>
                                 </div>
                             </div>
                         )}
@@ -368,6 +461,18 @@ export const StreamMode = () => {
                             <div className="stream-live-badge">
                                 <span className="stream-live-dot" />
                                 LIVE {fmtTime(streaming.streamStats?.uptime || 0)}
+                            </div>
+                        )}
+
+                        {/* Scene name badge */}
+                        {scenes.activeScene && (
+                            <div className="stream-scene-badge">{scenes.activeScene.name}</div>
+                        )}
+
+                        {/* Teleprompter overlay */}
+                        {teleprompterActive && teleprompterText && (
+                            <div className="stream-teleprompter" style={{ '--tele-speed': `${teleprompterSpeed}s` }}>
+                                <div className="stream-teleprompter-text">{teleprompterText}</div>
                             </div>
                         )}
 
