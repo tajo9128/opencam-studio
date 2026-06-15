@@ -374,6 +374,90 @@
 
 @keyframes rec-pulse { 0%,100%{opacity:1}50%{opacity:0.5} }
 
-/* SourcePanel embedded mode */
+/* Layout selector bar */
+.stream-layout-bar {
+    flex-shrink: 0;
+    display: flex;
+    gap: 0.3rem;
+    padding: 0.4rem 0.5rem;
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    overflow-x: auto;
+}
+
+.stream-layout-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 0.65rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-width: 48px;
+}
+
+.stream-layout-btn:hover:not(:disabled) {
+    background: var(--glass);
+    color: var(--text-main);
+}
+
+.stream-layout-btn.active {
+    background: rgba(139,92,246,0.15);
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
+.stream-layout-btn:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.stream-layout-icon {
+    font-size: 0.9rem;
+    line-height: 1;
+}
+
+.stream-layout-name {
+    font-weight: 600;
+}
+
+/* SourcePanel embedded in left panel */
 .stream-left-content .source-panel,
-.stream-left-content .source-panel-overlay { position: static; box-shadow: none; background: transparent; }
+.stream-left-content .source-panel-overlay {
+    position: static !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    border: none !important;
+    max-height: none !important;
+}
+
+.stream-left-content .source-panel-header { display: none; }
+.stream-left-content .source-panel-footer { background: transparent; }
+
+.source-edit-section {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--glass-border);
+}
+
+.source-edit-section-title {
+    font-size: 0.65rem !important;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.3rem;
+}
+
+.source-edit-row {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.source-edit-row .source-edit-field { flex: 1; }

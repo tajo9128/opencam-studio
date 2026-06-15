@@ -151,6 +151,52 @@ export const StreamMode = () => {
     const fmtTime = (s) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
     const platform = PLATFORM_INFO[streaming.platform] || PLATFORM_INFO.custom;
 
+    // Drag-to-rearrange sources on canvas
+    const dragRef = useRef(null);
+
+    const handleCanvasMouseDown = useCallback((e) => {
+        const canvas = canvasRef.current;
+        if (!canvas || !scenes.activeScene) return;
+        const rect = canvas.getBoundingClientRect();
+        const px = (e.clientX - rect.left) / rect.width;
+        const py = (e.clientY - rect.top) / rect.height;
+
+        // Hit-test: find topmost source under cursor
+        const sources = [...scenes.activeScene.sources].reverse();
+        for (const src of sources) {
+            if (!src.visible || src.locked) continue;
+            const t = src.transform;
+            if (px >= t.x && px <= t.x + t.width && py >= t.y && py <= t.y + t.height) {
+                dragRef.current = { sourceId: src.id, offsetX: px - t.x, offsetY: py - t.y };
+                canvas.style.cursor = 'grabbing';
+                return;
+            }
+        }
+    }, [scenes.activeScene]);
+
+    const handleCanvasMouseMove = useCallback((e) => {
+        if (!dragRef.current || !scenes.activeSceneId) return;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        const px = (e.clientX - rect.left) / rect.width;
+        const py = (e.clientY - rect.top) / rect.height;
+
+        const newX = Math.max(0, Math.min(1 - 0.05, px - dragRef.current.offsetX));
+        const newY = Math.max(0, Math.min(1 - 0.05, py - dragRef.current.offsetY));
+
+        scenes.updateSource(scenes.activeSceneId, dragRef.current.sourceId, {
+            transform: { ...(scenes.activeScene?.sources.find(s => s.id === dragRef.current.sourceId)?.transform), x: newX, y: newY },
+        });
+    }, [scenes]);
+
+    const handleCanvasMouseUp = useCallback(() => {
+        dragRef.current = null;
+        if (canvasRef.current) canvasRef.current.style.cursor = 'default';
+    }, []);
+
+    const currentLayout = scenes.activeScene?.layout || 'custom';
+
     return (
         <div className="stream-mode">
             {/* === MAIN LAYOUT === */}
@@ -244,8 +290,34 @@ export const StreamMode = () => {
 
                 {/* === CENTER PREVIEW === */}
                 <div className="stream-center">
+                    {/* Layout selector bar */}
+                    <div className="stream-layout-bar">
+                        {scenes.LAYOUTS?.map(layout => {
+                            const sourceCount = scenes.activeScene?.sources?.filter(s => s.visible).length || 0;
+                            const disabled = sourceCount < layout.minSources;
+                            return (
+                                <button
+                                    key={layout.id}
+                                    className={`stream-layout-btn ${currentLayout === layout.id ? 'active' : ''}`}
+                                    onClick={() => scenes.applyLayout?.(scenes.activeSceneId, layout.id)}
+                                    disabled={disabled}
+                                    title={disabled ? `Needs ${layout.minSources} sources` : layout.name}
+                                >
+                                    <span className="stream-layout-icon">{layout.icon}</span>
+                                    <span className="stream-layout-name">{layout.name}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
                     <div className="stream-preview-wrapper">
-                        <canvas ref={canvasRef} width={1920} height={1080} className="stream-canvas" />
+                        <canvas ref={canvasRef} width={1920} height={1080} className="stream-canvas"
+                            onMouseDown={handleCanvasMouseDown}
+                            onMouseMove={handleCanvasMouseMove}
+                            onMouseUp={handleCanvasMouseUp}
+                            onMouseLeave={handleCanvasMouseUp}
+                            style={{ cursor: 'default' }}
+                        />
 
                         {/* Recording badge */}
                         {recording.isRecording && (

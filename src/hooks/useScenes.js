@@ -1,12 +1,13 @@
 import { useState, useCallback, useRef } from 'react';
 import { applyFilters } from '../utils/FilterEngine';
+import { LAYOUTS, getLayoutById } from '../constants/layouts';
 
 let sceneIdCounter = 0;
 let sourceIdCounter = 0;
 
 const createSource = (overrides = {}) => ({
     id: `src_${++sourceIdCounter}`,
-    type: 'screen', // screen, camera, image, text, color
+    type: 'screen', // screen, camera, video, image, text, color
     name: 'Source',
     config: {},
     transform: { x: 0, y: 0, width: 1, height: 1, rotation: 0, opacity: 1, crop: { top: 0, right: 0, bottom: 0, left: 0 } },
@@ -132,6 +133,30 @@ export const useScenes = () => {
         });
     }, [persist]);
 
+    // Apply a layout preset to a scene — repositions all sources
+    const applyLayout = useCallback((sceneId, layoutId) => {
+        const layout = getLayoutById(layoutId);
+        setScenes(prev => {
+            const updated = prev.map(s => {
+                if (s.id !== sceneId) return s;
+                const sources = s.sources.map((src, i) => {
+                    const t = layout.transforms[i] || layout.transforms[0];
+                    return {
+                        ...src,
+                        transform: {
+                            ...src.transform,
+                            x: t.x, y: t.y,
+                            width: t.width, height: t.height,
+                        },
+                    };
+                });
+                return { ...s, sources, layout: layoutId };
+            });
+            persist(updated);
+            return updated;
+        });
+    }, [persist]);
+
     // Source management
     const addSource = useCallback((sceneId, sourceData) => {
         const source = createSource(sourceData);
@@ -250,6 +275,18 @@ export const useScenes = () => {
                     streams._cameraVideo.play().catch(() => {});
                 }
                 videoEl = streams._cameraVideo;
+            } else if (source.type === 'video' && source.config?.src) {
+                // Video file source — cache element on source object
+                if (!source._videoEl) {
+                    const v = document.createElement('video');
+                    v.src = source.config.src;
+                    v.loop = source.config.loop !== false;
+                    v.muted = true;
+                    v.playsInline = true;
+                    v.play().catch(() => {});
+                    source._videoEl = v;
+                }
+                videoEl = source._videoEl;
             }
 
             if (videoEl && videoEl.readyState >= 2) {
@@ -280,6 +317,36 @@ export const useScenes = () => {
                 ctx.filter = 'none';
             }
 
+            // Lower third name tag
+            if (source.lowerThird?.enabled && (source.lowerThird?.name || source.lowerThird?.title)) {
+                const lt = source.lowerThird;
+                const ltH = sHeight * 0.12;
+                const ltY = sy + sHeight - ltH - 4;
+                const ltPad = ltH * 0.15;
+                const barW = 4;
+
+                ctx.save();
+                ctx.globalAlpha = 0.9;
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(sx, ltY, sWidth, ltH);
+                ctx.fillStyle = lt.color || '#8b5cf6';
+                ctx.fillRect(sx, ltY, barW, ltH);
+                ctx.globalAlpha = 1;
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = `bold ${Math.round(ltH * 0.4)}px Outfit, sans-serif`;
+                ctx.textBaseline = 'top';
+                ctx.fillText(lt.name || '', sx + barW + ltPad, ltY + ltPad * 0.5);
+
+                if (lt.title) {
+                    ctx.fillStyle = lt.color || '#8b5cf6';
+                    ctx.font = `${Math.round(ltH * 0.3)}px Outfit, sans-serif`;
+                    ctx.fillText(lt.title, sx + barW + ltPad, ltY + ltH * 0.55);
+                }
+                ctx.textBaseline = 'alphabetic';
+                ctx.restore();
+            }
+
             ctx.restore();
         }
     }, []);
@@ -288,6 +355,6 @@ export const useScenes = () => {
         scenes, activeScene, activeSceneId,
         setActiveSceneId, addScene, removeScene, duplicateScene, updateScene,
         addSource, removeSource, updateSource, moveSource, reorderSources,
-        setHotkey, renderScene,
+        setHotkey, renderScene, applyLayout, LAYOUTS,
     };
 };
