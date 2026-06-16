@@ -458,7 +458,8 @@ Rules:
                 isRecording={isRecording} status={recordingStatus} countdown={countdown} recordingQuality={recordingQuality}
                 currentDimensions={currentDimensions} handleMouseDown={handleMouseDown} handleMouseMove={handleMouseMove}
                 handleMouseUp={handleMouseUp} elapsedTime={formatTime(elapsedTime)}
-                webcamOnly={webcamOnly} annotationEnabled={annotationEnabled} zoomEnabled={zoomEnabled} cursorFxEnabled={cursorFxEnabled} />
+                webcamOnly={webcamOnly} annotationEnabled={annotationEnabled} zoomEnabled={zoomEnabled} cursorFxEnabled={cursorFxEnabled}
+                onEnableScreen={toggleScreen} onEnableCamera={toggleCamera} />
 
             {annotationEnabled && (
                 <AnnotationToolbar tool={annotation.tool} setTool={annotation.setTool} color={annotation.color}

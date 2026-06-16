@@ -18,7 +18,9 @@ export const PreviewStage = ({
     webcamOnly,
     annotationEnabled,
     zoomEnabled,
-    cursorFxEnabled
+    cursorFxEnabled,
+    onEnableScreen,
+    onEnableCamera
 }) => {
     const useCanvas = cameraStream || activeBg !== 'none' || (screenScale && screenScale < 1.0) || (recordingQuality && recordingQuality !== 'native') || webcamOnly || annotationEnabled || zoomEnabled || cursorFxEnabled;
     const showPlaceholder = !cameraStream && !screenStream;
@@ -65,7 +67,16 @@ export const PreviewStage = ({
             )}
 
             {showPlaceholder && (
-                <div className="preview-placeholder">Sources Inactive - Enable Screen or Camera to start</div>
+                <div className="preview-placeholder">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.3">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+                    </svg>
+                    <p>Enable screen or camera to start</p>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                        {onEnableScreen && <button className="btn btn-outline" onClick={onEnableScreen} style={{ padding: '0.4rem 1rem', fontSize: '0.8rem' }}>Share Screen</button>}
+                        {onEnableCamera && <button className="btn btn-outline" onClick={onEnableCamera} style={{ padding: '0.4rem 1rem', fontSize: '0.8rem' }}>Enable Camera</button>}
+                    </div>
+                </div>
             )}
 
             {status === 'recording' && (
