@@ -58,7 +58,7 @@ export const useStreams = (screenVideoRef, cameraVideoRef, setStatus) => {
 
             setStatus('ready');
         } catch (err) {
-            alert(`Could not acquire screen: ${err.message}`);
+            console.warn('Screen capture cancelled or failed:', err.message);
         }
     };
 
@@ -73,10 +73,10 @@ export const useStreams = (screenVideoRef, cameraVideoRef, setStatus) => {
             if (stream) {
                 setSystemAudioStream(stream);
             } else {
-                alert('System audio capture is not supported in this browser. Try Chrome on Windows/Linux.');
+                console.warn('System audio capture is not supported in this browser.');
             }
         } catch {
-            alert('System audio capture not available. Try Chrome with "Share audio" checked.');
+            console.warn('System audio capture not available.');
         }
     };
 
@@ -93,7 +93,7 @@ export const useStreams = (screenVideoRef, cameraVideoRef, setStatus) => {
             setStatus('ready');
             return stream;
         } catch (err) {
-            alert(`Could not acquire microphone: ${err.message}`);
+            console.warn('Microphone not available:', err.message);
         }
     };
 
@@ -107,6 +107,14 @@ export const useStreams = (screenVideoRef, cameraVideoRef, setStatus) => {
         }
 
         try {
+            // Check if any camera devices exist first
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const hasCamera = devices.some(d => d.kind === 'videoinput');
+            if (!hasCamera && !deviceId) {
+                console.warn('No camera device found');
+                return null;
+            }
+
             const stream = await mediaManager.getCameraStream(1280, 720, deviceId);
             const track = stream.getVideoTracks()[0];
             const settings = track.getSettings();
@@ -123,7 +131,8 @@ export const useStreams = (screenVideoRef, cameraVideoRef, setStatus) => {
             setStatus('ready');
             return stream;
         } catch (err) {
-            alert(`Could not acquire camera: ${err.message}`);
+            console.warn('Camera not available:', err.message);
+            return null;
         }
     };
 
