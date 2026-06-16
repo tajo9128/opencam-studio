@@ -17,6 +17,15 @@ const QUALITIES = [
     { id: '2K', label: '2K', desc: 'QHD — 2560x1440' },
 ];
 
+const PRESETS = [
+    { id: 'youtube', label: 'YouTube', format: 'webm', quality: '1080p', res: '1920x1080' },
+    { id: 'instagram', label: 'Instagram', format: 'mp4', quality: '720p', res: '1080x1080' },
+    { id: 'tiktok', label: 'TikTok', format: 'mp4', quality: '720p', res: '1080x1920' },
+    { id: 'twitter', label: 'Twitter', format: 'mp4', quality: '720p', res: '1280x720' },
+    { id: 'linkedin', label: 'LinkedIn', format: 'mp4', quality: '720p', res: '1920x1080' },
+    { id: 'default', label: 'Custom', format: 'webm', quality: '1080p', res: '—' },
+];
+
 export const ExportMode = () => {
     const [format, setFormat] = useState('webm');
     const [quality, setQuality] = useState('1080p');
@@ -98,6 +107,19 @@ Rules:
                 </div>
 
                 <div className="export-settings-section">
+                    <div className="export-settings-card glass-card">
+                        <h3 className="export-card-title">Platform Preset</h3>
+                        <div className="export-option-grid">
+                            {PRESETS.map(p => (
+                                <button key={p.id} className={`export-option-btn ${format === p.format && quality === p.quality ? 'active' : ''}`}
+                                    onClick={() => { setFormat(p.format); setQuality(p.quality); }}>
+                                    <span className="export-option-label">{p.label}</span>
+                                    <span className="export-option-desc">{p.res} · {p.quality}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
                     <div className="export-settings-card glass-card">
                         <h3 className="export-card-title">Export Settings</h3>
 

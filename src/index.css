@@ -1017,3 +1017,8 @@ body {
 .rec-feature-btn.active {
   background: rgba(16,185,129,0.15); color: #10b981; border-color: #10b981;
 }
+.rec-feature-input {
+  padding: 0.25rem 0.5rem; border: 1px solid var(--glass-border); border-radius: 6px;
+  background: var(--glass); color: var(--text-main); font-size: 0.7rem; font-family: inherit;
+}
+.rec-feature-input:focus { outline: none; border-color: var(--primary); }

@@ -15,6 +15,7 @@ import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { recordingStore } from '../utils/RecordingStore';
 import { useAudioProcessor } from '../hooks/useAudioProcessor';
 import { useSmartZoom } from '../hooks/useSmartZoom';
+import { CALLOUTS } from '../utils/Callouts';
 
 // UI Components
 import { ControlBar } from './Controls/ControlBar';
@@ -81,10 +82,13 @@ const ScreenRecorder = () => {
     const [enhancedAudio, setEnhancedAudio] = useState(true);
     const [multiTrack, setMultiTrack] = useState(true);
     const [smartZoomEnabled, setSmartZoomEnabled] = useState(false);
+    const [callout, setCallout] = useState({ active: false, type: 'info', text: '' });
 
     const audioLevel = useAudioLevel(audioStream);
     const { processedStream } = useAudioProcessor(audioStream, enhancedAudio);
-    const { zoomLevel: _smartZoomLevel, panOffset: _smartPan } = useSmartZoom(canvasRef, smartZoomEnabled && !isRecording ? false : smartZoomEnabled);
+    const { zoomLevel: smartZoomLevel, panOffset: smartPan } = useSmartZoom(canvasRef, smartZoomEnabled);
+    const smartZoomRef = useRef({ level: 1, pan: { x: 0, y: 0 } });
+    useEffect(() => { smartZoomRef.current = { level: smartZoomEnabled ? smartZoomLevel : 1, pan: smartZoomEnabled ? smartPan : { x: 0, y: 0 } }; });
     const { drawCursorFx } = useCursorFx(canvasRef, cursorFxEnabled);
     const annotation = useAnnotation(canvasRef, annotationEnabled);
     const { applyZoom, restoreZoom } = useZoom(canvasRef, zoomEnabled);
@@ -360,6 +364,16 @@ Rules:
 
         const bubbleSize = canvas.height * webcamScale;
         const { x, y } = webcamPos.current;
+
+        // Smart zoom transform
+        const sz = smartZoomRef.current;
+        if (sz.level !== 1) {
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.scale(sz.level, sz.level);
+            ctx.translate(-canvas.width / 2 + (sz.pan.x * canvas.width), -canvas.height / 2 + (sz.pan.y * canvas.height));
+        }
+
         applyZoom(ctx, canvas.width, canvas.height);
 
         const preset = BACKGROUND_PRESETS.find(p => p.id === activeBg);
@@ -403,9 +417,17 @@ Rules:
             }
         }
         restoreZoom(ctx);
+        if (sz.level !== 1) ctx.restore();
         drawCursorFx(ctx, canvas.width, canvas.height);
         annotation.drawAnnotations(ctx);
         overlays.drawOverlays(ctx, 0);
+
+        // Callouts
+        if (callout.active && callout.text) {
+            const c = CALLOUTS[callout.type] || CALLOUTS.info;
+            c.render(ctx, canvas.width * 0.05, canvas.height * 0.05, callout.text);
+        }
+
         applyFilters(ctx, canvas, activeFilters);
     }, [cameraStream, screenStream, activeBg, webcamScale, screenScale, webcamShape, recordingQuality, webcamOnly, annotationEnabled, zoomEnabled, cursorFxEnabled, drawCursorFx, annotation, applyZoom, restoreZoom, activeFilters, overlays]);
 
@@ -544,7 +566,24 @@ Rules:
                 <button className={`rec-feature-btn ${smartZoomEnabled ? 'active' : ''}`} onClick={() => setSmartZoomEnabled(!smartZoomEnabled)} title="Auto-zoom to cursor activity">
                     {smartZoomEnabled ? 'ON' : 'OFF'} Smart Zoom
                 </button>
+                <button className={`rec-feature-btn ${callout.active ? 'active' : ''}`} onClick={() => setCallout(prev => ({ ...prev, active: !prev.active }))} title="Add callout overlay">
+                    {callout.active ? 'ON' : 'OFF'} Callout
+                </button>
             </div>
+            {callout.active && (
+                <div className="rec-features" style={{ marginTop: 0 }}>
+                    {Object.entries(CALLOUTS).map(([id, c]) => (
+                        <button key={id} className={`rec-feature-btn ${callout.type === id ? 'active' : ''}`}
+                            onClick={() => setCallout(prev => ({ ...prev, type: id }))} title={c.name}
+                            style={callout.type === id ? { borderColor: c.bg } : {}}>
+                            {c.icon} {c.name}
+                        </button>
+                    ))}
+                    <input type="text" className="rec-feature-input" value={callout.text}
+                        onChange={e => setCallout(prev => ({ ...prev, text: e.target.value }))}
+                        placeholder="Callout text..." style={{ flex: 1, minWidth: '120px' }} />
+                </div>
+            )}
 
             {annotationEnabled && (
                 <AnnotationToolbar tool={annotation.tool} setTool={annotation.setTool} color={annotation.color}
