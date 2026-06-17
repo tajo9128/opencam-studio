@@ -1,0 +1,91 @@
+.recorder-page {
+    display: flex; flex-direction: column; height: 100%; overflow: hidden;
+    background: var(--bg-deep);
+}
+
+/* === Preview === */
+.recorder-preview {
+    flex: 1; position: relative; display: flex; align-items: center; justify-content: center;
+    background: #000; margin: 1rem; border-radius: 16px; overflow: hidden;
+    border: 2px solid var(--glass-border); transition: border-color 0.3s;
+}
+.recorder-preview.recording { border-color: #ef4444; }
+.recorder-canvas { max-width: 100%; max-height: 100%; }
+
+/* Start screen */
+.recorder-start-screen {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 0.75rem;
+    background: rgba(0,0,0,0.9); z-index: 5;
+}
+.recorder-start-icon { font-size: 3rem; }
+.recorder-start-screen h2 { font-size: 1.5rem; font-weight: 700; color: var(--text-main); margin: 0; }
+.recorder-start-screen p { font-size: 0.9rem; color: var(--text-muted); margin: 0; }
+.recorder-start-btn {
+    margin-top: 0.5rem; padding: 1rem 2.5rem; border: none; border-radius: 16px;
+    background: #ef4444; color: white; font-size: 1.1rem; font-weight: 800;
+    font-family: inherit; cursor: pointer; transition: all 0.2s;
+    box-shadow: 0 4px 24px rgba(239,68,68,0.4);
+}
+.recorder-start-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 32px rgba(239,68,68,0.5); }
+.recorder-start-btn:disabled { opacity: 0.6; transform: none; cursor: wait; }
+.recorder-hint { font-size: 0.75rem; color: rgba(255,255,255,0.3); margin-top: 0.5rem; }
+.recorder-hint kbd {
+    padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.1);
+    font-family: monospace; font-size: 0.7rem;
+}
+
+/* === Recording bar === */
+.recorder-bar {
+    flex-shrink: 0; display: flex; align-items: center; gap: 1rem;
+    padding: 0.6rem 1rem; background: var(--bg-card); border-top: 1px solid var(--glass-border);
+}
+.recorder-bar-left, .recorder-bar-right { display: flex; align-items: center; gap: 0.5rem; }
+.recorder-bar-center { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
+.recorder-rec-dot {
+    width: 10px; height: 10px; border-radius: 50%; background: #ef4444;
+    animation: rec-pulse 1.5s infinite;
+}
+.recorder-timer { font-family: monospace; font-size: 1rem; font-weight: 700; color: #ef4444; }
+.recorder-q { font-size: 0.7rem; color: var(--text-muted); }
+.recorder-btn-pause {
+    padding: 0.4rem 1rem; border: 1px solid var(--glass-border); border-radius: 8px;
+    background: var(--glass); color: var(--text-main); font-size: 0.8rem; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+}
+.recorder-btn-pause:hover { background: var(--glass-hover); }
+.recorder-btn-play {
+    padding: 0.4rem 1rem; border: 1px solid #10b981; border-radius: 8px;
+    background: rgba(16,185,129,0.1); color: #10b981; font-size: 0.8rem; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+}
+.recorder-btn-stop {
+    padding: 0.4rem 1rem; border: none; border-radius: 8px;
+    background: #ef4444; color: white; font-size: 0.8rem; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+}
+.recorder-btn-stop:hover { background: #dc2626; }
+.recorder-audio-level {
+    width: 80px; height: 6px; border-radius: 3px; background: var(--glass); overflow: hidden;
+}
+.recorder-audio-fill {
+    height: 100%; border-radius: 3px;
+    background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444); transition: width 0.05s;
+}
+
+/* === Controls (pre-recording) === */
+.recorder-controls {
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    gap: 0.5rem; padding: 0.6rem 1rem; background: var(--bg-card); border-top: 1px solid var(--glass-border);
+}
+.recorder-ctrl {
+    padding: 0.4rem 0.8rem; border: 1px solid var(--glass-border); border-radius: 8px;
+    background: var(--glass); color: var(--text-muted); font-size: 0.75rem; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.recorder-ctrl:hover { background: var(--glass-hover); color: var(--text-main); }
+.recorder-ctrl.active {
+    background: rgba(16,185,129,0.15); color: #10b981; border-color: #10b981;
+}
+
+@keyframes rec-pulse { 0%,100%{opacity:1}50%{opacity:0.5} }
