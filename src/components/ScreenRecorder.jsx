@@ -286,16 +286,25 @@ Rules:
     const elapsedTimerRef = useRef(null);
     const quickRecordRef = useRef(false);
 
+    const startGuardRef = useRef(false);
+
     const handleRecordScreen = useCallback(async () => {
-        // If screen not active, enable it first
-        if (!screenStream) {
-            await toggleScreen();
+        if (startGuardRef.current) return; // Prevent double-calls
+        startGuardRef.current = true;
+        try {
+            if (!screenStream) {
+                await toggleScreen();
+            }
+            if (!screenStream && !cameraStream) return; // User cancelled
+            quickRecordRef.current = true;
+            setTimeout(() => {
+                startMediaRecording();
+                startGuardRef.current = false;
+            }, 500);
+        } catch {
+            startGuardRef.current = false;
         }
-        // Start recording immediately without countdown, auto-save on stop
-        quickRecordRef.current = true;
-        // Short delay to let the canvas render the first frame
-        setTimeout(() => startMediaRecording(), 300);
-    }, [screenStream, toggleScreen, startMediaRecording]);
+    }, [screenStream, toggleScreen, startMediaRecording, cameraStream]);
 
     const handleStopAll = useCallback(() => {
         if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
