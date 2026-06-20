@@ -1,25 +1,24 @@
 .recorder-page {
-    display: flex; flex-direction: column; height: 100vh; overflow: hidden;
-    background: var(--bg-deep);
+    display: flex; flex-direction: column; height: 100%; overflow: hidden;
 }
 
-/* === Main preview area - BIG canvas like dadan === */
+/* === Main preview area === */
 .recorder-main {
     flex: 1; position: relative; display: flex; align-items: center; justify-content: center;
-    background: var(--bg-deep); overflow: hidden; padding: 2rem 2rem 0.5rem;
+    overflow: hidden; padding: 2rem 2rem 0.5rem;
 }
 .recorder-canvas {
-    width: 100%; height: 100%; max-width: 1400px; border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4); background: #000;
+    width: 100%; height: 100%; max-width: 960px; border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5); background: #000;
+    border: 1px solid var(--glass-border);
 }
 
 /* Quality badge */
 .quality-badge {
-    position: absolute; top: 1.5rem; left: 1.5rem; z-index: 10;
-    padding: 0.3rem 0.6rem; border-radius: 6px;
+    position: absolute; top: 2.5rem; left: 2.5rem; z-index: 10;
+    padding: 0.25rem 0.6rem; border-radius: 6px;
     background: var(--primary-soft); color: var(--primary);
-    font-size: 0.75rem; font-weight: 700; backdrop-filter: blur(8px);
-    border: 1px solid rgba(139,92,246,0.3);
+    font-size: 0.7rem; font-weight: 700; border: 1px solid rgba(139,92,246,0.3);
 }
 
 /* Center placeholder */
@@ -29,18 +28,18 @@
     padding: 2rem;
 }
 
-/* Source cards */
+/* Source cards - matching glass card style */
 .recorder-sources {
     display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;
 }
 .recorder-source-card {
     display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
-    padding: 1.2rem; border-radius: 14px; border: 2px solid var(--glass-border);
+    padding: 1.2rem; border-radius: 12px; border: 1px solid var(--glass-border);
     background: var(--glass); color: var(--text-muted); font-family: inherit;
     cursor: pointer; transition: all 0.2s; min-width: 140px;
 }
 .recorder-source-card:hover {
-    border-color: var(--primary); background: var(--glass-hover); color: var(--text-main);
+    border-color: var(--primary); color: var(--text-main);
 }
 .recorder-source-card.active {
     border-color: var(--success); background: rgba(16,185,129,0.1); color: var(--text-main);
@@ -50,7 +49,7 @@
 .source-status { font-size: 0.65rem; opacity: 0.7; }
 .source-status.on { color: var(--success); opacity: 1; }
 
-/* Mic test bar in source card */
+/* Mic test bar */
 .mic-test-bar {
     display: inline-block; width: 60px; height: 4px; border-radius: 2px;
     background: var(--glass); overflow: hidden; vertical-align: middle;
@@ -68,27 +67,25 @@
     font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
     letter-spacing: 0.05em; color: var(--text-muted);
 }
-.template-options {
-    display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center;
-}
+.template-options { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center; }
 .template-btn {
     display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
-    padding: 0.45rem 0.6rem; border: 2px solid var(--glass-border); border-radius: 10px;
+    padding: 0.45rem 0.6rem; border: 1px solid var(--glass-border); border-radius: 8px;
     background: var(--glass); color: var(--text-muted); font-family: inherit;
-    cursor: pointer; transition: all 0.15s; min-width: 68px;
+    cursor: pointer; transition: all 0.15s; min-width: 64px;
 }
 .template-btn:hover { border-color: var(--primary); color: var(--text-main); }
 .template-btn.selected {
     border-color: var(--primary); background: var(--primary-soft); color: var(--primary);
 }
 .template-icon { font-size: 1rem; }
-.template-name { font-size: 0.55rem; font-weight: 600; line-height: 1.1; text-align: center; }
+.template-name { font-size: 0.5rem; font-weight: 600; line-height: 1.1; text-align: center; }
 
-/* Pip corner picker */
-.pip-corners { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; }
+/* Corner picker */
+.pip-corners { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
 .corner-options { display: flex; gap: 0.3rem; }
 .corner-btn {
-    padding: 0.25rem 0.5rem; border: 1px solid var(--glass-border); border-radius: 6px;
+    padding: 0.2rem 0.5rem; border: 1px solid var(--glass-border); border-radius: 6px;
     background: var(--glass); color: var(--text-muted); font-size: 0.6rem;
     font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s;
 }
@@ -97,16 +94,16 @@
 
 /* Start button */
 .recorder-start-btn {
-    padding: 0.9rem 2.5rem; border: none; border-radius: 14px;
+    padding: 0.9rem 2.5rem; border: none; border-radius: 12px;
     background: var(--danger); color: white; font-size: 1.1rem; font-weight: 800;
     font-family: inherit; cursor: pointer; transition: all 0.2s;
     box-shadow: 0 4px 24px rgba(239,68,68,0.4);
 }
-.recorder-start-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 32px rgba(239,68,68,0.5); }
+.recorder-start-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 32px rgba(239,68,68,0.5); }
 .recorder-start-btn:disabled { opacity: 0.4; transform: none; cursor: not-allowed; }
 .recorder-hint { font-size: 0.75rem; color: var(--text-muted); opacity: 0.5; }
 .recorder-hint kbd {
-    padding: 2px 8px; border-radius: 4px; background: var(--glass);
+    padding: 2px 8px; border-radius: 4px; background: var(--glass); color: var(--text-muted);
     font-family: monospace; font-size: 0.7rem;
 }
 .recorder-folder-info { font-size: 0.75rem; color: var(--text-muted); margin: 0; }
@@ -117,13 +114,13 @@
 }
 .recorder-folder-btn:hover { border-color: var(--primary); color: var(--text-main); }
 
-/* Camera full preview */
+/* Camera preview */
 .recorder-cam-full {
     position: absolute; inset: 0; width: 100%; height: 100%;
     object-fit: cover; border-radius: 12px;
 }
 
-/* Teleprompter overlay */
+/* Teleprompter */
 .teleprompter-overlay {
     position: absolute; bottom: 0; left: 0; right: 0;
     padding: 2rem; z-index: 8; pointer-events: none;
@@ -134,11 +131,11 @@
 
 /* Recording indicator */
 .rec-indicator {
-    position: absolute; top: 1.5rem; right: 1.5rem; z-index: 10;
+    position: absolute; top: 2.5rem; right: 2.5rem; z-index: 10;
     display: flex; align-items: center; gap: 0.5rem;
-    padding: 0.4rem 0.8rem; border-radius: 8px;
+    padding: 0.35rem 0.7rem; border-radius: 6px;
     background: rgba(239,68,68,0.9); color: white;
-    font-size: 0.8rem; font-weight: 700; backdrop-filter: blur(8px);
+    font-size: 0.75rem; font-weight: 700;
 }
 .rec-dot {
     width: 8px; height: 8px; border-radius: 50%; background: white;
@@ -146,94 +143,91 @@
 }
 .rec-timer { font-family: monospace; }
 
-/* Settings panel overlay */
+/* Settings panels - glass style matching editor */
 .settings-panel-overlay {
-    position: absolute; inset: 0; z-index: 20;
+    position: fixed; inset: 0; z-index: 100;
     display: flex; align-items: center; justify-content: center;
     background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
 }
 .settings-panel {
-    position: relative; width: 400px; max-height: 80vh; overflow-y: auto;
+    position: relative; width: 380px; max-height: 75vh; overflow-y: auto;
     background: var(--nav-bg); border-radius: 16px; padding: 1.5rem;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
     border: 1px solid var(--glass-border);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    backdrop-filter: blur(20px);
 }
 .settings-close {
     position: absolute; top: 1rem; right: 1rem; width: 28px; height: 28px;
-    border: 1px solid var(--glass-border); border-radius: 50%; background: var(--glass-hover); cursor: pointer;
-    display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
-    color: var(--text-muted);
+    border: 1px solid var(--glass-border); border-radius: 50%; background: var(--glass);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); font-size: 0.8rem; transition: all 0.15s;
 }
+.settings-close:hover { background: var(--glass-hover); color: var(--text-main); }
 .settings-close::after { content: ''; }
 .panel-content h3 { margin: 0 0 1rem; font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
 .panel-content h4 { margin: 1rem 0 0.5rem; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
 .panel-options { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .panel-option {
-    padding: 0.5rem 0.8rem; border: 2px solid var(--glass-border); border-radius: 10px;
+    padding: 0.5rem 0.8rem; border: 1px solid var(--glass-border); border-radius: 8px;
     background: var(--glass); color: var(--text-main); font-size: 0.8rem; font-weight: 600;
     cursor: pointer; font-family: inherit; transition: all 0.15s;
 }
 .panel-option:hover { border-color: var(--primary); color: var(--primary); }
 .panel-option.selected { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); }
-.bg-option { min-width: 80px; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
-.corner-section { margin-top: 1rem; }
+.bg-option { min-width: 76px; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+.corner-section { margin-top: 0.5rem; }
 .prompter-textarea {
-    width: 100%; min-height: 120px; border: 2px solid var(--glass-border); border-radius: 10px;
-    padding: 0.8rem; font-size: 0.9rem; font-family: inherit; resize: vertical;
+    width: 100%; min-height: 100px; border: 1px solid var(--glass-border); border-radius: 8px;
+    padding: 0.8rem; font-size: 0.85rem; font-family: inherit; resize: vertical;
     margin-bottom: 1rem; background: var(--glass); color: var(--text-main);
+    box-sizing: border-box;
 }
 .prompter-textarea:focus { outline: none; border-color: var(--primary); }
 .prompter-controls { display: flex; flex-direction: column; gap: 0.8rem; }
-.prompter-controls label { font-size: 0.85rem; color: var(--text-muted); }
+.prompter-controls label { font-size: 0.8rem; color: var(--text-muted); }
 .prompter-controls input[type="range"] { width: 100%; accent-color: var(--primary); }
 .settings-list { display: flex; flex-direction: column; gap: 1rem; }
-.setting-row { display: flex; align-items: center; justify-content: space-between; }
+.setting-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .setting-row label { font-size: 0.85rem; font-weight: 600; color: var(--text-main); }
 .setting-row select {
-    padding: 0.4rem 0.6rem; border: 2px solid var(--glass-border); border-radius: 8px;
+    padding: 0.4rem 0.6rem; border: 1px solid var(--glass-border); border-radius: 6px;
     font-size: 0.8rem; font-family: inherit; background: var(--glass); color: var(--text-main);
 }
 
-/* === Bottom toolbar - 2 rows, compact like dadan === */
+/* === Bottom toolbar - editor-style transport/controls === */
 .recorder-toolbar {
-    flex-shrink: 0; display: flex; flex-direction: column; align-items: center;
-    gap: 0.4rem; padding: 0.5rem 1rem; background: var(--nav-bg);
-    border-top: 1px solid var(--glass-border); z-index: 30;
-    backdrop-filter: blur(20px);
-}
-.toolbar-row {
-    display: flex; align-items: center; justify-content: center;
-    gap: 0; width: 100%;
+    flex-shrink: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+    gap: 1rem; padding: 0.6rem 1.5rem; background: var(--nav-bg);
+    border-top: 1px solid var(--glass-border); backdrop-filter: blur(20px);
+    z-index: 30;
 }
 .toolbar-group { display: flex; align-items: center; gap: 0.2rem; }
-.toolbar-sources { gap: 0.1rem; }
-.toolbar-tools { gap: 0.1rem; }
-.toolbar-actions { gap: 0.3rem; }
 .toolbar-divider {
     width: 1px; height: 24px; background: var(--glass-border); margin: 0 0.5rem;
 }
 .toolbar-btn {
-    display: flex; flex-direction: column; align-items: center; gap: 0.15rem;
-    padding: 0.3rem 0.5rem; border: none; border-radius: 6px;
-    background: transparent; color: var(--text-muted); font-size: 0.65rem; font-weight: 600;
+    display: flex; align-items: center; gap: 0.35rem;
+    padding: 0.4rem 0.7rem; border: 1px solid transparent; border-radius: 8px;
+    background: transparent; color: var(--text-muted); font-size: 0.75rem; font-weight: 600;
     cursor: pointer; font-family: inherit; transition: all 0.15s; white-space: nowrap;
-    min-width: 48px;
 }
 .toolbar-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
 .toolbar-btn:hover { background: var(--glass-hover); color: var(--text-main); }
-.toolbar-btn.active { background: var(--primary-soft); color: var(--primary); }
+.toolbar-btn.active {
+    background: var(--primary-soft); color: var(--primary);
+    border-color: rgba(139,92,246,0.3);
+}
 .toolbar-record-btn {
-    padding: 0.4rem 1rem; border-radius: 20px; flex-direction: row;
+    padding: 0.45rem 1.2rem; border-radius: 20px;
     background: var(--primary-soft); color: var(--primary); font-weight: 700;
     border: 2px solid rgba(139,92,246,0.3); transition: all 0.2s;
-    min-width: auto;
 }
 .toolbar-record-btn:hover { background: rgba(139,92,246,0.25); border-color: var(--primary); }
 .toolbar-record-btn.recording {
     background: rgba(239,68,68,0.15); color: var(--danger); border-color: rgba(239,68,68,0.3);
 }
 .record-dot {
-    width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+    width: 7px; height: 7px; border-radius: 50%; background: currentColor;
 }
 .toolbar-record-btn.recording .record-dot { animation: rec-pulse 1.5s infinite; }
 
