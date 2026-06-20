@@ -45,9 +45,12 @@ class MediaManager {
         }
     }
 
-    async getCameraStream(width, height, deviceId) {
+    async getCameraStream(width, height, deviceId, withAudio = false) {
         const video = { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } };
         if (deviceId) video.deviceId = { exact: deviceId };
+        if (withAudio) {
+            return navigator.mediaDevices.getUserMedia({ video, audio: true });
+        }
         return navigator.mediaDevices.getUserMedia({ video });
     }
 

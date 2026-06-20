@@ -106,17 +106,24 @@ export const useStreams = (screenVideoRef, cameraVideoRef, setStatus) => {
             setCameraStream(null);
             setCameraDimensions({ width: 0, height: 0 });
             if (cameraVideoRef.current) cameraVideoRef.current.srcObject = null;
+            if (audioStream === cameraStream) setAudioStream(null);
             return null;
         }
 
         try {
-            const stream = await mediaManager.getCameraStream(1280, 720, deviceId);
-            const track = stream.getVideoTracks()[0];
-            const settings = track.getSettings();
+            // Also grab audio if mic not already active (avoids separate getUserMedia conflict)
+            const stream = await mediaManager.getCameraStream(1280, 720, deviceId, !audioStream);
+            const videoTrack = stream.getVideoTracks()[0];
+            const audioTrack = stream.getAudioTracks()[0];
+
+            if (audioTrack && !audioStream) {
+                // Camera stream also has audio - use it as mic
+                setAudioStream(stream);
+            }
 
             setCameraDimensions({
-                width: settings.width || 1280,
-                height: settings.height || 720
+                width: videoTrack?.getSettings()?.width || 1280,
+                height: videoTrack?.getSettings()?.height || 720
             });
 
             setCameraStream(stream);
