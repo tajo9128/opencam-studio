@@ -83,6 +83,8 @@ const ScreenRecorder = () => {
     const [layoutTemplate, setLayoutTemplate] = useState('pip-circle');
     const [pipCorner, setPipCorner] = useState('br');
     const [drawer, setDrawer] = useState(null);
+    const [isStarting, setIsStarting] = useState(false);
+    const isStartingRef = useRef(false);
 
     const audioLevel = useAudioLevel(audioStream);
     const { drawCursorFx } = useCursorFx(canvasRef, cursorFxEnabled);
@@ -453,6 +455,31 @@ const ScreenRecorder = () => {
             });
         }, 1000);
     }, [isRecording, countdown, startMediaRecording]);
+
+    const startFlow = useCallback(async () => {
+        if (isStartingRef.current || isRecording) return;
+        isStartingRef.current = true; setIsStarting(true);
+        try {
+            const needsCam = ['pip-circle', 'pip-rect', 'side-by-side', 'stacked', 'camera-only'].includes(layoutTemplate);
+            const needsScreen = layoutTemplate !== 'camera-only';
+            if (needsScreen && !screenStream) await toggleScreen();
+            if (needsCam && !cameraStream) await toggleCamera();
+            if (!needsScreen && !needsCam) return;
+            if (!audioStream) await toggleMic().catch(() => {});
+            setCountdown(3);
+            countdownTimerRef.current = setInterval(() => {
+                setCountdown(prev => {
+                    if (prev <= 1) {
+                        if (countdownTimerRef.current) { clearInterval(countdownTimerRef.current); countdownTimerRef.current = null; }
+                        startMediaRecording(); setIsStarting(false); isStartingRef.current = false; return null;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        } catch {
+            setIsStarting(false); isStartingRef.current = false;
+        }
+    }, [layoutTemplate, screenStream, cameraStream, audioStream, isRecording, toggleScreen, toggleCamera, toggleMic, startMediaRecording]);
 
     useEffect(() => {
         const handleKeyDown = (e) => {
