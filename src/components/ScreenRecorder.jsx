@@ -542,12 +542,12 @@ const ScreenRecorder = () => {
                     onClick={async () => {
                         try {
                             const stream = await toggleCamera();
-                            if (stream) showToast('Camera', 'Webcam enabled', 'success');
+                            if (stream) showToast('Camera Ready', 'Webcam active — you look great!', 'success');
                         } catch (e) {
                             if (e.name === 'NotAllowedError') {
-                                showToast('Camera Blocked', 'Click lock icon in URL bar → Site Settings → Allow Camera', 'error');
+                                showToast('Camera Blocked', 'Allow in Chrome settings then refresh page', 'error');
                             } else {
-                                showToast('Camera Error', e.message, 'error');
+                                showToast('Camera Error', e.message || 'Unknown error', 'error');
                             }
                         }
                     }} disabled={isRecording}>
@@ -557,12 +557,12 @@ const ScreenRecorder = () => {
                     onClick={async () => {
                         try {
                             const stream = await toggleMic();
-                            if (stream) showToast('Mic', 'Microphone enabled', 'success');
+                            if (stream) showToast('Mic Ready', 'Microphone active', 'success');
                         } catch (e) {
                             if (e.name === 'NotAllowedError') {
-                                showToast('Mic Blocked', 'Click lock icon in URL bar → Site Settings → Allow Microphone', 'error');
+                                showToast('Mic Blocked', 'Allow in Chrome settings then refresh page', 'error');
                             } else {
-                                showToast('Mic Error', e.message, 'error');
+                                showToast('Mic Error', e.message || 'Unknown error', 'error');
                             }
                         }
                     }} disabled={isRecording}>
