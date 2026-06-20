@@ -542,13 +542,9 @@ const ScreenRecorder = () => {
                     onClick={async () => {
                         try {
                             const stream = await toggleCamera();
-                            if (stream) showToast('Camera Ready', 'Webcam active — you look great!', 'success');
+                            if (stream) showToast('Camera On', 'Webcam is active', 'success');
                         } catch (e) {
-                            if (e.name === 'NotAllowedError') {
-                                showToast('Camera Blocked', 'Go to chrome://settings/content/siteDetails?site=http://localhost:3000 and allow camera', 'error');
-                            } else {
-                                showToast('Camera Error', e.message || 'Unknown error', 'error');
-                            }
+                            showToast('Camera unavailable', 'Check camera connection or browser permissions', 'error');
                         }
                     }} disabled={isRecording}>
                     📷 Cam
@@ -557,13 +553,9 @@ const ScreenRecorder = () => {
                     onClick={async () => {
                         try {
                             const stream = await toggleMic();
-                            if (stream) showToast('Mic Ready', 'Microphone active', 'success');
+                            if (stream) showToast('Mic On', 'Microphone is active', 'success');
                         } catch (e) {
-                            if (e.name === 'NotAllowedError') {
-                                showToast('Mic Blocked', 'Go to chrome://settings/content/siteDetails?site=http://localhost:3000 and allow microphone', 'error');
-                            } else {
-                                showToast('Mic Error', e.message || 'Unknown error', 'error');
-                            }
+                            showToast('Mic unavailable', 'Check microphone connection or browser permissions', 'error');
                         }
                     }} disabled={isRecording}>
                     🎤 Mic
