@@ -19,6 +19,7 @@ import { BACKGROUND_PRESETS } from '../../constants/backgrounds';
 import { useClipBin } from '../../hooks/useClipBin';
 import { ClipBin } from './ClipBin';
 import { ClipMonitor } from './ClipMonitor';
+import { Toast } from '../Notifications/Toast';
 import './EditMode.css';
 
 export const EditMode = () => {
@@ -94,25 +95,35 @@ export const EditMode = () => {
     const fileInputRef = useRef(null);
     const [isDragOver, setIsDragOver] = useState(false);
     const [previewClip, setPreviewClip] = useState(null);
+    const [toast, setToast] = useState(null);
+
+    const showToast = useCallback((title, msg, type) => {
+        setToast({ title, message: msg, type });
+        setTimeout(() => setToast(null), 3000);
+    }, []);
 
     const importFiles = useCallback((files) => {
         Array.from(files).forEach(file => {
-            const url = URL.createObjectURL(file);
-            const video = document.createElement('video');
-            video.preload = 'metadata';
-            video.onloadedmetadata = () => {
-                const duration = video.duration || 10;
-                timeline.addClip(0, {
-                    sourceUrl: url,
-                    duration,
-                    sourceEnd: duration,
-                    label: file.name.replace(/\.[^/.]+$/, ''),
-                    type: 'video',
-                });
-            };
-            video.src = url;
+            try {
+                const url = URL.createObjectURL(file);
+                const video = document.createElement('video');
+                video.preload = 'metadata';
+                video.onloadedmetadata = () => {
+                    timeline.addClip(0, {
+                        sourceUrl: url,
+                        duration: video.duration || 10,
+                        sourceEnd: video.duration || 10,
+                        label: file.name.replace(/\.[^/.]+$/, ''),
+                        type: file.type?.startsWith('audio') ? 'audio' : 'video',
+                    });
+                };
+                video.onerror = () => showToast('Import Error', `${file.name} could not be loaded`, 'error');
+                video.src = url;
+            } catch (e) {
+                console.error('File import failed:', file.name, e);
+            }
         });
-    }, [timeline]);
+    }, [timeline, showToast]);
 
     const handleImportMedia = useCallback((e) => {
         importFiles(e.target.files);
@@ -628,6 +639,7 @@ export const EditMode = () => {
                         alert('Project loaded!');
                     }}>Load</button>
             </div>
+            <Toast toast={toast} onClose={() => setToast(null)} />
         </div>
     );
 };
