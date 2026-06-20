@@ -2,6 +2,7 @@
     display: flex;
     flex-direction: column;
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
     background: var(--bg-deep);
 }
@@ -9,6 +10,7 @@
 .app-shell-body {
     flex: 1;
     overflow: hidden;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
 }
