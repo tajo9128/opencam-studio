@@ -46,23 +46,15 @@ class MediaManager {
     }
 
     async getCameraStream(width, height, deviceId) {
-        const video = {
-            width: { max: width || 1920 },
-            height: { max: height || 1080 },
-            frameRate: { ideal: 30, max: 30 }
-        };
+        const video = { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } };
         if (deviceId) video.deviceId = { exact: deviceId };
         return navigator.mediaDevices.getUserMedia({ video });
     }
 
     async getAudioStream(deviceId) {
-        const audio = {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
-        };
-        if (deviceId) audio.deviceId = { exact: deviceId };
-        return navigator.mediaDevices.getUserMedia({ audio, video: false });
+        const audio = true;
+        if (deviceId) return navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: deviceId } }, video: false });
+        return navigator.mediaDevices.getUserMedia({ audio: true, video: false });
     }
 
     async getSystemAudio() {

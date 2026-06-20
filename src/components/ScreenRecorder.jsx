@@ -525,8 +525,13 @@ const ScreenRecorder = () => {
                         try {
                             const stream = await toggleCamera();
                             if (stream) showToast('Camera', 'Webcam enabled', 'success');
-                            else if (!cameraStream) showToast('Camera', 'Webcam disabled', 'info');
-                        } catch (e) { showToast('Camera Error', e.message, 'error'); }
+                        } catch (e) {
+                            if (e.name === 'NotAllowedError') {
+                                showToast('Camera Blocked', 'Click lock icon in URL bar → Site Settings → Allow Camera', 'error');
+                            } else {
+                                showToast('Camera Error', e.message, 'error');
+                            }
+                        }
                     }} disabled={isRecording}>
                     📷 Cam
                 </button>
@@ -535,8 +540,13 @@ const ScreenRecorder = () => {
                         try {
                             const stream = await toggleMic();
                             if (stream) showToast('Mic', 'Microphone enabled', 'success');
-                            else if (!audioStream) showToast('Mic', 'Microphone disabled', 'info');
-                        } catch (e) { showToast('Mic Error', e.message, 'error'); }
+                        } catch (e) {
+                            if (e.name === 'NotAllowedError') {
+                                showToast('Mic Blocked', 'Click lock icon in URL bar → Site Settings → Allow Microphone', 'error');
+                            } else {
+                                showToast('Mic Error', e.message, 'error');
+                            }
+                        }
                     }} disabled={isRecording}>
                     🎤 Mic
                 </button>
