@@ -268,7 +268,7 @@ const ScreenRecorder = () => {
         if (!canvas) return;
         const ctx = canvas.getContext('2d', { alpha: false });
         const roundRect = (x, y, w, h, r) => { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.arcTo(x + w, y, x + w, y + r, r); ctx.lineTo(x + w, y + h - r); ctx.arcTo(x + w, y + h, x + w - r, y + h, r); ctx.lineTo(x + r, y + h); ctx.arcTo(x, y + h, x, y + h - r, r); ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r); ctx.closePath(); };
-        const tpl = layoutTemplate;
+        const tpl = !screenStream && cameraStream ? 'camera-only' : layoutTemplate;
         const isCanvasNeeded = cameraStream || activeBg !== 'none' || screenScale < 1.0 || (recordingQuality && recordingQuality !== 'native') || webcamOnly || annotationEnabled || zoomEnabled || cursorFxEnabled;
         if (!isCanvasNeeded && tpl !== 'side-by-side' && tpl !== 'stacked') return;
 
@@ -517,26 +517,7 @@ const ScreenRecorder = () => {
                     undo={annotation.undo} redo={annotation.redo} clearAnnotations={annotation.clearAnnotations}
                     canUndo={annotation.hasAnnotations} canRedo={false} />
             )}
-
-            {cameraStream && !screenStream && !isRecording && (
-                <div className="sy-device-check">
-                    <div className="sy-cam-preview">
-                        <video ref={cameraVideoRef} autoPlay muted playsInline
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 12 }} />
-                    </div>
-                    {audioStream && (
-                        <div className="sy-mic-level">
-                            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginRight: '0.5rem' }}>Mic</span>
-                            <div style={{ flex: 1, height: 6, borderRadius: 3, background: 'var(--glass)', overflow: 'hidden' }}>
-                                <div style={{ width: `${Math.min(audioLevel * 100, 100)}%`, height: '100%', borderRadius: 3,
-                                    background: 'linear-gradient(90deg, #10b981, #f59e0b, #ef4444)', transition: 'width 0.1s' }} />
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* Single toolbar bar — dadan.io style */}
+            {/* Toolbar */}
             <div className="control-bar">
                 <button className={`btn-pill ${cameraStream ? 'active' : ''}`}
                     onClick={async () => {
