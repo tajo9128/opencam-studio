@@ -131,7 +131,7 @@ const ScreenRecorder = () => {
     }, [showToast]);
 
     const {
-        isRecording, isPaused, startRecording: startMediaRecording, pauseRecording, resumeRecording, stopRecording, resetRecording
+        isRecording, isPaused, status: recStatus, startRecording: startMediaRecording, pauseRecording, resumeRecording, stopRecording, resetRecording
     } = useRecording({
         screenStream, audioStream, cameraStream,
         activeBg, screenScale, canvasRef,
@@ -464,7 +464,7 @@ const ScreenRecorder = () => {
             const needsScreen = layoutTemplate !== 'camera-only';
             if (needsScreen && !screenStream) await toggleScreen();
             if (needsCam && !cameraStream) await toggleCamera();
-            if (!needsScreen && !needsCam) return;
+            if (!needsScreen && !needsCam) { setIsStarting(false); isStartingRef.current = false; return; }
             if (!audioStream) await toggleMic().catch(() => {});
             setCountdown(3);
             countdownTimerRef.current = setInterval(() => {
@@ -507,7 +507,7 @@ const ScreenRecorder = () => {
 
             <PreviewStage canvasRef={canvasRef} screenVideoRef={screenVideoRef} cameraVideoRef={cameraVideoRef}
                 cameraStream={cameraStream} screenStream={screenStream} activeBg={activeBg} screenScale={screenScale}
-                isRecording={isRecording} status={status} countdown={countdown} recordingQuality={recordingQuality}
+                isRecording={isRecording} status={recStatus} countdown={countdown} recordingQuality={recordingQuality}
                 currentDimensions={currentDimensions} handleMouseDown={handleMouseDown} handleMouseMove={handleMouseMove}
                 handleMouseUp={handleMouseUp} elapsedTime={formatTime(elapsedTime)} />
 
@@ -710,10 +710,6 @@ const ScreenRecorder = () => {
                 <span>Current Mode: {cameraStream ? 'Optimized Canvas' : 'Direct Hardware'}</span>
                 <span style={{ marginLeft: '1rem', opacity: 0.5, fontSize: '0.7rem' }}>Space: record/stop | P: pause | Esc: cancel</span>
             </div>
-
-            <footer style={{ marginTop: 'auto', paddingTop: '4rem', color: 'var(--text-muted)', fontSize: '0.75rem', width: '100%', maxWidth: '600px', textAlign: 'center', lineHeight: '1.5' }}>
-                <p>BioDockify Studio &mdash; Free &amp; Open Source</p>
-            </footer>
 
             <HistorySidebar isHistoryOpen={isHistoryOpen} setIsHistoryOpen={setIsHistoryOpen}
                 directoryHandle={directoryHandle} isHandleAuthorized={isHandleAuthorized}
