@@ -545,7 +545,7 @@ const ScreenRecorder = () => {
                             if (stream) showToast('Camera Ready', 'Webcam active — you look great!', 'success');
                         } catch (e) {
                             if (e.name === 'NotAllowedError') {
-                                showToast('Camera Blocked', 'Allow in Chrome settings then refresh page', 'error');
+                                showToast('Camera Blocked', 'Go to chrome://settings/content/siteDetails?site=http://localhost:3000 and allow camera', 'error');
                             } else {
                                 showToast('Camera Error', e.message || 'Unknown error', 'error');
                             }
@@ -560,7 +560,7 @@ const ScreenRecorder = () => {
                             if (stream) showToast('Mic Ready', 'Microphone active', 'success');
                         } catch (e) {
                             if (e.name === 'NotAllowedError') {
-                                showToast('Mic Blocked', 'Allow in Chrome settings then refresh page', 'error');
+                                showToast('Mic Blocked', 'Go to chrome://settings/content/siteDetails?site=http://localhost:3000 and allow microphone', 'error');
                             } else {
                                 showToast('Mic Error', e.message || 'Unknown error', 'error');
                             }
