@@ -13,9 +13,6 @@ import { useAI } from '../hooks/useAI';
 import { useYouTube } from '../hooks/useYouTube';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { recordingStore } from '../utils/RecordingStore';
-import { useAudioProcessor } from '../hooks/useAudioProcessor';
-import { useSmartZoom } from '../hooks/useSmartZoom';
-import { CALLOUTS } from '../utils/Callouts';
 
 // UI Components
 import { ControlBar } from './Controls/ControlBar';
@@ -78,17 +75,7 @@ const ScreenRecorder = () => {
     const [activeFilters, setActiveFilters] = useState([]);
     const [showWelcome, setShowWelcome] = useState(false);
 
-    // Camtasia-inspired recording features
-    const [enhancedAudio, setEnhancedAudio] = useState(true);
-    const [multiTrack, setMultiTrack] = useState(true);
-    const [smartZoomEnabled, setSmartZoomEnabled] = useState(false);
-    const [callout, setCallout] = useState({ active: false, type: 'info', text: '' });
-
     const audioLevel = useAudioLevel(audioStream);
-    const { processedStream } = useAudioProcessor(audioStream, enhancedAudio);
-    const { zoomLevel: smartZoomLevel, panOffset: smartPan } = useSmartZoom(canvasRef, smartZoomEnabled);
-    const smartZoomRef = useRef({ level: 1, pan: { x: 0, y: 0 } });
-    useEffect(() => { smartZoomRef.current = { level: smartZoomEnabled ? smartZoomLevel : 1, pan: smartZoomEnabled ? smartPan : { x: 0, y: 0 } }; });
     const { drawCursorFx } = useCursorFx(canvasRef, cursorFxEnabled);
     const annotation = useAnnotation(canvasRef, annotationEnabled);
     const { applyZoom, restoreZoom } = useZoom(canvasRef, zoomEnabled);
@@ -119,60 +106,24 @@ const ScreenRecorder = () => {
         generateThumbnail, getThumbnailUrl
     } = useFileSystem(showToast, setHighlightedFile);
 
-    const handleRecordingComplete = useCallback((blob, mimeType, meta = {}) => {
+    const handleRecordingComplete = useCallback((blob, mimeType) => {
         if (!blob) {
             showToast('Recording Failed', 'No video data was captured.', 'error');
             return;
         }
         recordingStore.set(blob, mimeType);
-        // Store cursor data if captured
-        if (meta.cursorData?.length > 0) {
-            try { localStorage.setItem('last_cursor_data', JSON.stringify(meta.cursorData)); } catch { /* storage full */ }
-        }
-        // Store separate audio if multi-track
-        if (meta.multiTrack && meta.audioBlob) {
-            try { localStorage.setItem('last_audio_track', meta.audioBlob.type); } catch { /* storage full */ }
-        }
-
-        if (quickRecordRef.current) {
-            quickRecordRef.current = false;
-            const ext = mimeType?.includes('mp4') ? '.mp4' : '.webm';
-            const name = `recording-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)}${ext}`;
-            const blobUrl = URL.createObjectURL(blob);
-            if (directoryHandle) {
-                directoryHandle.getFileHandle(name, { create: true }).then(fileHandle =>
-                    fileHandle.createWritable().then(writable =>
-                        writable.write(blob).then(() => writable.close())
-                    )
-                ).then(() => {
-                    showToast('Saved', `Saved to ${directoryHandle.name}/${name}`, 'success');
-                    syncLibrary(directoryHandle);
-                }).catch(() => {
-                    const a = document.createElement('a');
-                    a.href = blobUrl; a.download = name; a.click();
-                    showToast('Download Saved', 'Saved via browser download', 'success');
-                });
-            } else {
-                const a = document.createElement('a');
-                a.href = blobUrl; a.download = name; a.click();
-                showToast('Download Saved', 'Check your downloads folder', 'success');
-            }
-            return;
-        }
-
-        setPendingRecording({ blob, mimeType, audioBlob: meta.audioBlob });
-    }, [showToast, directoryHandle, syncLibrary]);
+        setPendingRecording({ blob, mimeType });
+    }, [showToast]);
 
     const {
-        isRecording, isPaused, status: recordingStatus, multiTrackMode, startRecording: startMediaRecording, pauseRecording, resumeRecording, stopRecording, resetRecording
+        isRecording, isPaused, status: recordingStatus, startRecording: startMediaRecording, pauseRecording, resumeRecording, stopRecording, resetRecording
     } = useRecording({
-        screenStream, audioStream: processedStream || audioStream, cameraStream,
+        screenStream, audioStream, cameraStream,
         activeBg, screenScale, canvasRef,
         recordingQuality,
         bitrate: QUALITY_PRESETS[recordingQuality].bitrate,
         mimeType: EXPORT_FORMATS.find(f => f.id === recordingFormat)?.mimeType,
         useCanvas: cameraStream || activeBg !== 'none' || screenScale < 1.0 || webcamOnly || annotationEnabled || zoomEnabled || cursorFxEnabled,
-        multiTrack,
         onComplete: handleRecordingComplete
     });
 
@@ -284,27 +235,6 @@ Rules:
     const dragOffset = useRef({ x: 0, y: 0 });
     const countdownTimerRef = useRef(null);
     const elapsedTimerRef = useRef(null);
-    const quickRecordRef = useRef(false);
-
-    const startGuardRef = useRef(false);
-
-    const handleRecordScreen = useCallback(async () => {
-        if (startGuardRef.current) return; // Prevent double-calls
-        startGuardRef.current = true;
-        try {
-            if (!screenStream) {
-                await toggleScreen();
-            }
-            if (!screenStream && !cameraStream) return; // User cancelled
-            quickRecordRef.current = true;
-            setTimeout(() => {
-                startMediaRecording();
-                startGuardRef.current = false;
-            }, 500);
-        } catch {
-            startGuardRef.current = false;
-        }
-    }, [screenStream, toggleScreen, startMediaRecording, cameraStream]);
 
     const handleStopAll = useCallback(() => {
         if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
@@ -373,16 +303,6 @@ Rules:
 
         const bubbleSize = canvas.height * webcamScale;
         const { x, y } = webcamPos.current;
-
-        // Smart zoom transform
-        const sz = smartZoomRef.current;
-        if (sz.level !== 1) {
-            ctx.save();
-            ctx.translate(canvas.width / 2, canvas.height / 2);
-            ctx.scale(sz.level, sz.level);
-            ctx.translate(-canvas.width / 2 + (sz.pan.x * canvas.width), -canvas.height / 2 + (sz.pan.y * canvas.height));
-        }
-
         applyZoom(ctx, canvas.width, canvas.height);
 
         const preset = BACKGROUND_PRESETS.find(p => p.id === activeBg);
@@ -426,17 +346,9 @@ Rules:
             }
         }
         restoreZoom(ctx);
-        if (sz.level !== 1) ctx.restore();
         drawCursorFx(ctx, canvas.width, canvas.height);
         annotation.drawAnnotations(ctx);
         overlays.drawOverlays(ctx, 0);
-
-        // Callouts
-        if (callout.active && callout.text) {
-            const c = CALLOUTS[callout.type] || CALLOUTS.info;
-            c.render(ctx, canvas.width * 0.05, canvas.height * 0.05, callout.text);
-        }
-
         applyFilters(ctx, canvas, activeFilters);
     }, [cameraStream, screenStream, activeBg, webcamScale, screenScale, webcamShape, recordingQuality, webcamOnly, annotationEnabled, zoomEnabled, cursorFxEnabled, drawCursorFx, annotation, applyZoom, restoreZoom, activeFilters, overlays]);
 
@@ -546,53 +458,7 @@ Rules:
                 isRecording={isRecording} status={recordingStatus} countdown={countdown} recordingQuality={recordingQuality}
                 currentDimensions={currentDimensions} handleMouseDown={handleMouseDown} handleMouseMove={handleMouseMove}
                 handleMouseUp={handleMouseUp} elapsedTime={formatTime(elapsedTime)}
-                webcamOnly={webcamOnly} annotationEnabled={annotationEnabled} zoomEnabled={zoomEnabled} cursorFxEnabled={cursorFxEnabled}
-                onEnableScreen={handleRecordScreen} onEnableCamera={toggleCamera} />
-
-            {/* Recording HUD */}
-            {isRecording && (
-                <div className="rec-hud">
-                    <span className="rec-hud-item rec-hud-rec">
-                        <span className="rec-hud-dot" /> REC {formatTime(elapsedTime)}
-                    </span>
-                    <span className="rec-hud-item">~{Math.round(elapsedTime * QUALITY_PRESETS[recordingQuality].bitrate / 8000000)} MB</span>
-                    {multiTrackMode && <span className="rec-hud-badge">MULTI-TRACK</span>}
-                    {enhancedAudio && <span className="rec-hud-badge">ENHANCED AUDIO</span>}
-                    <span className="rec-hud-audio-bar">
-                        <span className="rec-hud-audio-fill" style={{ width: `${Math.min(audioLevel * 100, 100)}%` }} />
-                    </span>
-                </div>
-            )}
-
-            {/* Feature toggles */}
-            <div className="rec-features">
-                <button className={`rec-feature-btn ${enhancedAudio ? 'active' : ''}`} onClick={() => setEnhancedAudio(!enhancedAudio)} title="AI Noise Removal">
-                    {enhancedAudio ? 'ON' : 'OFF'} Noise Removal
-                </button>
-                <button className={`rec-feature-btn ${multiTrack ? 'active' : ''}`} onClick={() => setMultiTrack(!multiTrack)} title="Separate audio track recording">
-                    {multiTrack ? 'ON' : 'OFF'} Multi-Track
-                </button>
-                <button className={`rec-feature-btn ${smartZoomEnabled ? 'active' : ''}`} onClick={() => setSmartZoomEnabled(!smartZoomEnabled)} title="Auto-zoom to cursor activity">
-                    {smartZoomEnabled ? 'ON' : 'OFF'} Smart Zoom
-                </button>
-                <button className={`rec-feature-btn ${callout.active ? 'active' : ''}`} onClick={() => setCallout(prev => ({ ...prev, active: !prev.active }))} title="Add callout overlay">
-                    {callout.active ? 'ON' : 'OFF'} Callout
-                </button>
-            </div>
-            {callout.active && (
-                <div className="rec-features" style={{ marginTop: 0 }}>
-                    {Object.entries(CALLOUTS).map(([id, c]) => (
-                        <button key={id} className={`rec-feature-btn ${callout.type === id ? 'active' : ''}`}
-                            onClick={() => setCallout(prev => ({ ...prev, type: id }))} title={c.name}
-                            style={callout.type === id ? { borderColor: c.bg } : {}}>
-                            {c.icon} {c.name}
-                        </button>
-                    ))}
-                    <input type="text" className="rec-feature-input" value={callout.text}
-                        onChange={e => setCallout(prev => ({ ...prev, text: e.target.value }))}
-                        placeholder="Callout text..." style={{ flex: 1, minWidth: '120px' }} />
-                </div>
-            )}
+                webcamOnly={webcamOnly} annotationEnabled={annotationEnabled} zoomEnabled={zoomEnabled} cursorFxEnabled={cursorFxEnabled} />
 
             {annotationEnabled && (
                 <AnnotationToolbar tool={annotation.tool} setTool={annotation.setTool} color={annotation.color}
