@@ -5,6 +5,7 @@
     height: 100dvh;
     overflow: hidden;
     background: var(--bg-deep);
+    padding-bottom: 48px;
 }
 
 .app-shell-body {
