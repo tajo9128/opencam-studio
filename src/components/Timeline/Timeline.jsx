@@ -211,6 +211,13 @@ export const Timeline = ({
                     {(clip.speed ?? 1) !== 1 && <span className="tl-clip-speed">{clip.speed}x</span>}
                     <span className="tl-clip-duration">{formatTime(clip.duration)}</span>
                 </div>
+                {clip.type === 'audio' && (
+                    <div className="tl-clip-waveform" style={{ position: 'absolute', left: 8, right: 8, bottom: 6, height: 16, display: 'flex', alignItems: 'flex-end', gap: 1 }}>
+                        {Array.from({ length: 40 }).map((_, i) => (
+                            <div key={i} style={{ flex: 1, height: `${10 + Math.random() * 70}%`, background: '#10b981', borderRadius: '1px', opacity: 0.6 }} />
+                        ))}
+                    </div>
+                )}
                 {clipThumbnails[clip.id] && (
                     <div className="tl-clip-thumb" style={{ backgroundImage: `url(${clipThumbnails[clip.id]})` }} />
                 )}
