@@ -319,22 +319,25 @@ export const useTimeline = () => {
     const videoCacheRef = useRef(new Map()); // clipId -> HTMLVideoElement
 
     const getOrCreateVideo = useCallback((clip) => {
-        if (!clip.sourceUrl) return null;
-        let video = videoCacheRef.current.get(clip.id);
+        const cid = clip.id;
+        let video = videoCacheRef.current.get(cid);
         if (!video) {
-            // Limit cache to 10 videos to prevent OOM
-            if (videoCacheRef.current.size >= 10) {
+            // Limit cache to 5 videos max
+            if (videoCacheRef.current.size >= 5) {
                 const first = videoCacheRef.current.keys().next().value;
                 const old = videoCacheRef.current.get(first);
-                if (old) { old.pause(); old.src = ''; }
+                if (old) { old.pause(); old.src = ''; old.load(); }
                 videoCacheRef.current.delete(first);
             }
             video = document.createElement('video');
             video.muted = true;
             video.playsInline = true;
             video.preload = 'metadata';
-            video.src = clip.sourceUrl;
-            videoCacheRef.current.set(clip.id, video);
+            // Use existing blob URL or recreate from File ref
+            const url = clip.sourceUrl || (clip._fileRef ? URL.createObjectURL(clip._fileRef) : null);
+            if (!url) return null;
+            video.src = url;
+            videoCacheRef.current.set(cid, video);
         }
         return video;
     }, []);

@@ -105,20 +105,32 @@ export const EditMode = () => {
     const importFiles = useCallback((files) => {
         Array.from(files).forEach(file => {
             try {
+                // Skip files larger than 500MB to prevent OOM
+                if (file.size > 10 * 1024 * 1024 * 1024) {
+                    showToast('File too large', `${file.name} (>500MB). Use smaller files.`, 'error');
+                    return;
+                }
                 const url = URL.createObjectURL(file);
                 const video = document.createElement('video');
                 video.preload = 'metadata';
                 video.onloadedmetadata = () => {
+                    const dur = video.duration || 10;
+                    // Store the File object, not blob URL, to save memory
+                    const fileRef = file;
                     timeline.addClip(0, {
                         sourceUrl: url,
-                        duration: video.duration || 10,
-                        sourceEnd: video.duration || 10,
+                        duration: dur,
+                        sourceEnd: dur,
                         label: file.name.replace(/\.[^/.]+$/, ''),
                         type: file.type?.startsWith('audio') ? 'audio' : 'video',
+                        _fileRef: fileRef,
                     });
                     showToast('Imported', file.name, 'success');
                 };
-                video.onerror = () => showToast('Import Error', `${file.name} - unsupported format`, 'error');
+                video.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    showToast('Import Error', `${file.name} - unsupported format`, 'error');
+                };
                 video.src = url;
             } catch (e) {
                 showToast('Import Failed', file.name, 'error');
