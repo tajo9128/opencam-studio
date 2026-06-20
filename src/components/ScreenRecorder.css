@@ -1,169 +1,148 @@
 .recorder-page {
-    display: flex; flex-direction: column; height: 100%; overflow: hidden;
-    background: var(--bg-deep);
+    display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+    background: #f5f5f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-/* === Preview === */
-.recorder-preview {
+/* === Main preview area === */
+.recorder-main {
     flex: 1; position: relative; display: flex; align-items: center; justify-content: center;
-    background: #000; margin: 1rem; border-radius: 16px; overflow: hidden;
-    border: 2px solid var(--glass-border); transition: border-color 0.3s;
+    background: #f5f5f7; overflow: hidden; padding: 1rem;
 }
-.recorder-preview.recording { border-color: #ef4444; }
-.recorder-canvas { max-width: 100%; max-height: 100%; }
-
-/* Camera preview overlay */
-.recorder-cam-preview {
-    position: absolute; bottom: 12px; right: 12px; width: 160px; height: 120px;
-    border-radius: 12px; border: 2px solid var(--glass-border); object-fit: cover;
-    background: #000; z-index: 3;
+.recorder-canvas {
+    max-width: 100%; max-height: 100%; border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12); background: #000;
 }
 
-/* === Start screen === */
-.recorder-start-screen {
+/* Quality badge */
+.quality-badge {
+    position: absolute; top: 1.5rem; left: 1.5rem; z-index: 10;
+    padding: 0.3rem 0.6rem; border-radius: 6px;
+    background: rgba(139,92,246,0.9); color: white;
+    font-size: 0.75rem; font-weight: 700; backdrop-filter: blur(8px);
+}
+
+/* Center placeholder */
+.recorder-placeholder {
     position: absolute; inset: 0; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 1.5rem;
-    background: rgba(0,0,0,0.92); z-index: 5; padding: 2rem;
+    align-items: center; justify-content: center; gap: 1rem; z-index: 5;
+}
+.placeholder-icon {
+    width: 48px; height: 48px; color: rgba(255,255,255,0.6);
+}
+.placeholder-text {
+    font-size: 1.1rem; color: rgba(255,255,255,0.85); text-align: center;
+    line-height: 1.6; font-weight: 500;
 }
 
-/* Source cards row */
-.recorder-sources {
-    display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;
-}
-.recorder-source-card {
-    display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
-    padding: 1.2rem; border-radius: 14px; border: 2px solid var(--glass-border);
-    background: var(--glass); color: var(--text-muted); font-family: inherit;
-    cursor: pointer; transition: all 0.2s; min-width: 140px;
-}
-.recorder-source-card:hover {
-    border-color: var(--primary); background: var(--glass-hover); color: var(--text-main);
-}
-.recorder-source-card.active {
-    border-color: #10b981; background: rgba(16,185,129,0.1); color: var(--text-main);
-}
-.source-icon { font-size: 1.8rem; }
-.source-label { font-size: 0.8rem; font-weight: 700; }
-.source-status { font-size: 0.65rem; opacity: 0.7; }
-.source-status.on { color: #10b981; opacity: 1; }
-
-/* Mic test bar in source card */
-.mic-test-bar {
-    display: inline-block; width: 60px; height: 4px; border-radius: 2px;
-    background: var(--glass); overflow: hidden; vertical-align: middle;
-}
-.mic-test-fill {
-    display: block; height: 100%; border-radius: 2px;
-    background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444); transition: width 0.08s;
+/* Camera full preview */
+.recorder-cam-full {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; border-radius: 12px;
 }
 
-/* Start button */
-.recorder-start-btn {
-    padding: 0.9rem 2.5rem; border: none; border-radius: 14px;
-    background: #ef4444; color: white; font-size: 1.1rem; font-weight: 800;
-    font-family: inherit; cursor: pointer; transition: all 0.2s;
-    box-shadow: 0 4px 24px rgba(239,68,68,0.4);
+/* Teleprompter overlay */
+.teleprompter-overlay {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 2rem; z-index: 8; pointer-events: none;
+    background: linear-gradient(transparent, rgba(0,0,0,0.7));
+    color: white; font-size: 1.4rem; font-weight: 600; line-height: 1.8;
+    text-align: center; transition: transform 0.05s linear;
 }
-.recorder-start-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 32px rgba(239,68,68,0.5); }
-.recorder-start-btn:disabled { opacity: 0.4; transform: none; cursor: not-allowed; }
-.recorder-hint { font-size: 0.75rem; color: rgba(255,255,255,0.3); }
-.recorder-hint kbd {
-    padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.1);
-    font-family: monospace; font-size: 0.7rem;
-}
-.recorder-folder-info { font-size: 0.75rem; color: var(--text-muted); margin: 0; }
 
-/* Template selector */
-.recorder-templates {
-    display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+/* Recording indicator */
+.rec-indicator {
+    position: absolute; top: 1.5rem; right: 1.5rem; z-index: 10;
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.4rem 0.8rem; border-radius: 8px;
+    background: rgba(239,68,68,0.9); color: white;
+    font-size: 0.8rem; font-weight: 700; backdrop-filter: blur(8px);
 }
-.template-label {
-    font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.05em; color: var(--text-muted);
-}
-.template-options {
-    display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center;
-}
-.template-btn {
-    display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
-    padding: 0.45rem 0.6rem; border: 2px solid var(--glass-border); border-radius: 10px;
-    background: var(--glass); color: var(--text-muted); font-family: inherit;
-    cursor: pointer; transition: all 0.15s; min-width: 68px;
-}
-.template-btn:hover { border-color: var(--primary); color: var(--text-main); }
-.template-btn.selected {
-    border-color: var(--primary); background: rgba(139,92,246,0.15); color: var(--primary);
-}
-.template-icon { font-size: 1rem; }
-.template-name { font-size: 0.55rem; font-weight: 600; line-height: 1.1; text-align: center; }
-
-/* Pip corner picker */
-.pip-corners { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; }
-.corner-options { display: flex; gap: 0.3rem; }
-.corner-btn {
-    padding: 0.25rem 0.5rem; border: 1px solid var(--glass-border); border-radius: 6px;
-    background: var(--glass); color: var(--text-muted); font-size: 0.6rem;
-    font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s;
-}
-.corner-btn:hover { border-color: var(--primary); color: var(--text-main); }
-.corner-btn.selected { border-color: var(--primary); color: var(--primary); background: rgba(139,92,246,0.1); }
-
-/* Overlay controls when sources active */
-.recorder-overlay-controls {
-    position: absolute; bottom: 12px; left: 12px; right: 12px;
-    display: flex; align-items: center; justify-content: space-between;
-    z-index: 4; gap: 0.5rem;
-}
-.recorder-mini-sources { display: flex; gap: 0.35rem; }
-.recorder-mini-settings { display: flex; gap: 0.35rem; }
-.recorder-mini-ctrl {
-    padding: 0.3rem 0.7rem; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
-    background: rgba(0,0,0,0.75); color: rgba(255,255,255,0.7); font-size: 0.7rem;
-    font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s;
-    backdrop-filter: blur(8px);
-}
-.recorder-mini-ctrl:hover { border-color: rgba(255,255,255,0.4); color: white; }
-.recorder-mini-ctrl.active {
-    background: rgba(16,185,129,0.25); color: #10b981; border-color: #10b981;
-}
-select.recorder-mini-ctrl { appearance: none; padding-right: 0.5rem; }
-
-/* === Recording bar === */
-.recorder-bar {
-    flex-shrink: 0; display: flex; align-items: center; gap: 1rem;
-    padding: 0.6rem 1rem; background: var(--bg-card); border-top: 1px solid var(--glass-border);
-}
-.recorder-bar-left, .recorder-bar-right { display: flex; align-items: center; gap: 0.5rem; }
-.recorder-bar-center { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
-.recorder-rec-dot {
-    width: 10px; height: 10px; border-radius: 50%; background: #ef4444;
+.rec-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: white;
     animation: rec-pulse 1.5s infinite;
 }
-.recorder-timer { font-family: monospace; font-size: 1rem; font-weight: 700; color: #ef4444; }
-.recorder-q { font-size: 0.7rem; color: var(--text-muted); }
-.recorder-btn-pause {
-    padding: 0.4rem 1rem; border: 1px solid var(--glass-border); border-radius: 8px;
-    background: var(--glass); color: var(--text-main); font-size: 0.8rem; font-weight: 600;
-    cursor: pointer; font-family: inherit;
+.rec-timer { font-family: monospace; }
+
+/* Settings panel overlay */
+.settings-panel-overlay {
+    position: absolute; inset: 0; z-index: 20;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
 }
-.recorder-btn-pause:hover { background: var(--glass-hover); }
-.recorder-btn-play {
-    padding: 0.4rem 1rem; border: 1px solid #10b981; border-radius: 8px;
-    background: rgba(16,185,129,0.1); color: #10b981; font-size: 0.8rem; font-weight: 600;
-    cursor: pointer; font-family: inherit;
+.settings-panel {
+    position: relative; width: 400px; max-height: 80vh; overflow-y: auto;
+    background: white; border-radius: 16px; padding: 1.5rem;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
 }
-.recorder-btn-stop {
-    padding: 0.4rem 1rem; border: none; border-radius: 8px;
-    background: #ef4444; color: white; font-size: 0.8rem; font-weight: 700;
-    cursor: pointer; font-family: inherit;
+.settings-close {
+    position: absolute; top: 1rem; right: 1rem; width: 28px; height: 28px;
+    border: none; border-radius: 50%; background: #f0f0f0; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
 }
-.recorder-btn-stop:hover { background: #dc2626; }
-.recorder-audio-level {
-    width: 80px; height: 6px; border-radius: 3px; background: var(--glass); overflow: hidden;
+.settings-close::after { content: ''; }
+.panel-content h3 { margin: 0 0 1rem; font-size: 1.1rem; font-weight: 700; color: #1a1a1a; }
+.panel-content h4 { margin: 1rem 0 0.5rem; font-size: 0.85rem; font-weight: 600; color: #666; }
+.panel-options { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.panel-option {
+    padding: 0.5rem 0.8rem; border: 2px solid #e0e0e0; border-radius: 10px;
+    background: white; color: #333; font-size: 0.8rem; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: all 0.15s;
 }
-.recorder-audio-fill {
-    height: 100%; border-radius: 3px;
-    background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444); transition: width 0.05s;
+.panel-option:hover { border-color: #8b5cf6; color: #8b5cf6; }
+.panel-option.selected { border-color: #8b5cf6; background: rgba(139,92,246,0.1); color: #8b5cf6; }
+.bg-option { min-width: 80px; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+.corner-section { margin-top: 1rem; }
+.prompter-textarea {
+    width: 100%; min-height: 120px; border: 2px solid #e0e0e0; border-radius: 10px;
+    padding: 0.8rem; font-size: 0.9rem; font-family: inherit; resize: vertical;
+    margin-bottom: 1rem;
+}
+.prompter-textarea:focus { outline: none; border-color: #8b5cf6; }
+.prompter-controls { display: flex; flex-direction: column; gap: 0.8rem; }
+.prompter-controls label { font-size: 0.85rem; color: #666; }
+.prompter-controls input[type="range"] { width: 100%; accent-color: #8b5cf6; }
+.settings-list { display: flex; flex-direction: column; gap: 1rem; }
+.setting-row { display: flex; align-items: center; justify-content: space-between; }
+.setting-row label { font-size: 0.85rem; font-weight: 600; color: #333; }
+.setting-row select {
+    padding: 0.4rem 0.6rem; border: 2px solid #e0e0e0; border-radius: 8px;
+    font-size: 0.8rem; font-family: inherit;
 }
 
-@keyframes rec-pulse { 0%,100%{opacity:1}50%{opacity:0.5} }
+/* === Bottom toolbar === */
+.recorder-toolbar {
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    gap: 0; padding: 0.6rem 1rem; background: white;
+    border-top: 1px solid #e8e8e8; z-index: 30;
+}
+.toolbar-group { display: flex; align-items: center; gap: 0.25rem; }
+.toolbar-sources { gap: 0.15rem; }
+.toolbar-tools { gap: 0.15rem; }
+.toolbar-actions { gap: 0.5rem; }
+.toolbar-divider {
+    width: 1px; height: 28px; background: #e0e0e0; margin: 0 0.75rem;
+}
+.toolbar-btn {
+    display: flex; align-items: center; gap: 0.35rem;
+    padding: 0.4rem 0.7rem; border: none; border-radius: 8px;
+    background: transparent; color: #555; font-size: 0.75rem; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: all 0.15s; white-space: nowrap;
+}
+.toolbar-btn:hover { background: #f0f0f0; color: #333; }
+.toolbar-btn.active { background: rgba(139,92,246,0.1); color: #8b5cf6; }
+.toolbar-btn svg { flex-shrink: 0; }
+.toolbar-record-btn {
+    padding: 0.5rem 1.2rem; border-radius: 24px;
+    background: #f3e8ff; color: #7c3aed; font-weight: 700;
+    border: 2px solid #e9d5ff; transition: all 0.2s;
+}
+.toolbar-record-btn:hover { background: #ede9fe; border-color: #c4b5fd; }
+.toolbar-record-btn.recording {
+    background: #fee2e2; color: #dc2626; border-color: #fecaca;
+}
+.record-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: currentColor;
+}
+.toolbar-record-btn.recording .record-dot { animation: rec-pulse 1.5s infinite; }
+
+@keyframes rec-pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
