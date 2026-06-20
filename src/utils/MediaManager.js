@@ -52,11 +52,6 @@ class MediaManager {
                 width: { max: width || 1920 },
                 height: { max: height || 1080 },
                 frameRate: { ideal: 30, max: 30 }
-            },
-            audio: {
-                echoCancellation: true,
-                noiseSuppression: true,
-                autoGainControl: true
             }
         });
     }

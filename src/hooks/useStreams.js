@@ -106,18 +106,10 @@ export const useStreams = (screenVideoRef, cameraVideoRef, setStatus) => {
             setCameraStream(null);
             setCameraDimensions({ width: 0, height: 0 });
             if (cameraVideoRef.current) cameraVideoRef.current.srcObject = null;
-            return;
+            return null;
         }
 
         try {
-            // Check if any camera devices exist first
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const hasCamera = devices.some(d => d.kind === 'videoinput');
-            if (!hasCamera && !deviceId) {
-                console.warn('No camera device found');
-                return null;
-            }
-
             const stream = await mediaManager.getCameraStream(1280, 720, deviceId);
             const track = stream.getVideoTracks()[0];
             const settings = track.getSettings();
