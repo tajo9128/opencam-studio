@@ -557,10 +557,6 @@ const ScreenRecorder = () => {
                     onClick={() => setDrawer(drawer === 'tools' ? null : 'tools')}>
                     🛠 Tools
                 </button>
-                <button className={`btn-pill ${drawer === 'test' ? 'active' : ''}`}
-                    onClick={() => setDrawer(drawer === 'test' ? null : 'test')}>
-                    🧪 Test
-                </button>
                 {!isRecording ? (
                     <button className="btn-pill active" onClick={startFlow} disabled={isStarting}
                         style={{ background: 'var(--danger)', color: 'white' }}>
@@ -674,54 +670,6 @@ const ScreenRecorder = () => {
                                     <button className={`panel-option ${filterPanelOpen ? 'selected' : ''}`}
                                         onClick={() => setFilterPanelOpen(!filterPanelOpen)}>
                                         {filterPanelOpen ? 'ON' : 'OFF'}
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                        {drawer === 'test' && (
-                            <div className="drawer-options" style={{ flexDirection: 'column', gap: '1rem' }}>
-                                <div style={{ textAlign: 'center', padding: '1rem', borderRadius: 12, background: 'var(--glass)', border: '1px solid var(--glass-border)' }}>
-                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Camera Preview</p>
-                                    {cameraStream ? (
-                                        <video ref={cameraVideoRef} autoPlay muted playsInline
-                                            style={{ width: '100%', maxHeight: 200, borderRadius: 8, background: '#000' }} />
-                                    ) : (
-                                        <div style={{ padding: '2rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                                            📷 Camera not active — click Check below
-                                        </div>
-                                    )}
-                                    <button className="panel-option" onClick={async () => {
-                                        try {
-                                            const s = await toggleCamera();
-                                            if (s) showToast('Camera', 'Working!', 'success');
-                                            else if (cameraStream) showToast('Camera', 'Disabled', 'info');
-                                        } catch (e) {
-                                            showToast('Camera', e.name === 'NotAllowedError' ? 'Blocked by browser' : e.message, 'error');
-                                        }
-                                    }} style={{ marginTop: '0.5rem' }}>
-                                        {cameraStream ? '✅ Camera Working' : '🔍 Check Camera'}
-                                    </button>
-                                </div>
-                                <div style={{ textAlign: 'center', padding: '1rem', borderRadius: 12, background: 'var(--glass)', border: '1px solid var(--glass-border)' }}>
-                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Microphone Test</p>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                                        <div style={{ width: '80%', height: 8, borderRadius: 4, background: 'var(--glass)', overflow: 'hidden' }}>
-                                            <div style={{ width: `${Math.min(audioLevel * 100, 100)}%`, height: '100%', borderRadius: 4,
-                                                background: audioStream ? 'linear-gradient(90deg, #10b981, #f59e0b, #ef4444)' : 'var(--glass-border)',
-                                                transition: 'width 0.1s' }} />
-                                        </div>
-                                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{Math.round(audioLevel * 100)}%</span>
-                                    </div>
-                                    <button className="panel-option" onClick={async () => {
-                                        try {
-                                            const s = await toggleMic();
-                                            if (s) showToast('Mic', 'Working!', 'success');
-                                            else if (audioStream) showToast('Mic', 'Disabled', 'info');
-                                        } catch (e) {
-                                            showToast('Mic', e.name === 'NotAllowedError' ? 'Blocked by browser' : e.message, 'error');
-                                        }
-                                    }} style={{ marginTop: '0.5rem' }}>
-                                        {audioStream ? '✅ Mic Working' : '🎤 Check Mic'}
                                     </button>
                                 </div>
                             </div>
