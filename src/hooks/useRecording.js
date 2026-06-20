@@ -47,8 +47,9 @@ export const useRecording = ({
                     if (screenStream) videoTracks.push(...screenStream.getVideoTracks());
                     if (cameraStream) videoTracks.push(...cameraStream.getVideoTracks());
                 }
-            } else if (screenStream) {
-                videoTracks.push(...screenStream.getVideoTracks());
+            } else {
+                if (screenStream) videoTracks.push(...screenStream.getVideoTracks());
+                if (cameraStream) videoTracks.push(...cameraStream.getVideoTracks());
             }
 
             const hasAudio = !!audioStream;

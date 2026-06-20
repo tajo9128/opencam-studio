@@ -137,7 +137,6 @@ const ScreenRecorder = () => {
         activeBg, screenScale, canvasRef,
         recordingQuality,
         bitrate: QUALITY_PRESETS[recordingQuality].bitrate,
-        useCanvas: true,
         onComplete: handleRecordingComplete
     });
 
