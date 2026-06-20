@@ -252,10 +252,91 @@ const ScreenRecorder = () => {
                 {/* Center placeholder when no sources active */}
                 {!screenStream && !cameraStream && !isRecording && (
                     <div className="recorder-placeholder">
-                        <svg className="placeholder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                            <rect x="2" y="3" width="20" height="14" rx="2"/><circle cx="17" cy="17" r="3"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
-                        </svg>
-                        <p className="placeholder-text">To Start Recording, Turn On Your<br/>Camera Or Microphone Or<br/>Share Your Screen From Toolbar</p>
+                        <div className="recorder-sources">
+                            <button className={`recorder-source-card ${screenStream ? 'active' : ''}`}
+                                onClick={async () => {
+                                    const stream = await toggleScreen();
+                                    if (stream) { setToast({ title: 'Screen Active', message: 'Screen sharing enabled', type: 'success' }); }
+                                }}>
+                                <span className="source-icon">️</span>
+                                <span className="source-label">Screen</span>
+                                <span className={`source-status ${screenStream ? 'on' : 'off'}`}>
+                                    {screenStream ? ' Active' : '🔒 Click to enable'}
+                                </span>
+                            </button>
+                            <button className={`recorder-source-card ${cameraStream ? 'active' : ''}`}
+                                onClick={async () => {
+                                    const stream = await toggleCamera();
+                                    if (stream) { setToast({ title: 'Camera Active', message: 'Camera enabled', type: 'success' }); }
+                                }}>
+                                <span className="source-icon">📷</span>
+                                <span className="source-label">Camera</span>
+                                <span className={`source-status ${cameraStream ? 'on' : 'off'}`}>
+                                    {cameraStream ? '🔓 Active' : ' Click to enable'}
+                                </span>
+                            </button>
+                            <button className={`recorder-source-card ${audioStream ? 'active' : ''}`}
+                                onClick={async () => {
+                                    const stream = await toggleMic();
+                                    if (stream) { setToast({ title: 'Mic Active', message: 'Microphone enabled', type: 'success' }); }
+                                }}>
+                                <span className="source-icon"></span>
+                                <span className="source-label">Microphone</span>
+                                <span className={`source-status ${audioStream ? 'on' : 'off'}`}>
+                                    {audioStream ? (
+                                        <span className="mic-test-bar">
+                                            <span className="mic-test-fill" style={{ width: `${Math.min(audioLevel * 100, 100)}%` }} />
+                                        </span>
+                                    ) : '🔒 Click to enable'}
+                                </span>
+                            </button>
+                        </div>
+                        {/* Template selector */}
+                        <div className="recorder-templates">
+                            <span className="template-label">Recording Layout</span>
+                            <div className="template-options">
+                                {RECORDING_TEMPLATES.map(t => (
+                                    <button key={t.id}
+                                        className={`template-btn ${layoutTemplate === t.id ? 'selected' : ''}`}
+                                        onClick={() => setLayoutTemplate(t.id)}
+                                        title={t.desc}>
+                                        <span className="template-icon">{t.icon}</span>
+                                        <span className="template-name">{t.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                            {(layoutTemplate === 'pip-circle' || layoutTemplate === 'pip-rect') && (
+                                <div className="pip-corners">
+                                    <span className="template-label">Webcam Position</span>
+                                    <div className="corner-options">
+                                        {[
+                                            { id: 'tl', label: '↖ Top Left' },
+                                            { id: 'tr', label: '↗ Top Right' },
+                                            { id: 'bl', label: '↙ Bot Left' },
+                                            { id: 'br', label: '↘ Bot Right' },
+                                        ].map(c => (
+                                            <button key={c.id}
+                                                className={`corner-btn ${pipCorner === c.id ? 'selected' : ''}`}
+                                                onClick={() => setPipCorner(c.id)}>
+                                                {c.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <button className="recorder-start-btn" onClick={startFlow} disabled={isStarting || (!screenStream && !cameraStream)}>
+                            {isStarting ? 'Opening Screen Picker...' : (screenStream || cameraStream) ? 'Start Recording' : 'Enable Screen or Camera to start'}
+                        </button>
+                        <p className="recorder-hint">or press <kbd>Space</kbd></p>
+                        {directoryHandle && (
+                            <p className="recorder-folder-info">
+                                📁 Saves to: {directoryHandle.name}
+                            </p>
+                        )}
+                        <button className="recorder-folder-btn" onClick={selectFolder}>
+                            📁 {directoryHandle ? `Change Folder (${directoryHandle.name})` : 'Select Save Folder'}
+                        </button>
                     </div>
                 )}
 
