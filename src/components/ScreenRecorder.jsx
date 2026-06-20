@@ -518,6 +518,24 @@ const ScreenRecorder = () => {
                     canUndo={annotation.hasAnnotations} canRedo={false} />
             )}
 
+            {cameraStream && !screenStream && !isRecording && (
+                <div className="sy-device-check">
+                    <div className="sy-cam-preview">
+                        <video ref={cameraVideoRef} autoPlay muted playsInline
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 12 }} />
+                    </div>
+                    {audioStream && (
+                        <div className="sy-mic-level">
+                            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginRight: '0.5rem' }}>Mic</span>
+                            <div style={{ flex: 1, height: 6, borderRadius: 3, background: 'var(--glass)', overflow: 'hidden' }}>
+                                <div style={{ width: `${Math.min(audioLevel * 100, 100)}%`, height: '100%', borderRadius: 3,
+                                    background: 'linear-gradient(90deg, #10b981, #f59e0b, #ef4444)', transition: 'width 0.1s' }} />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* Single toolbar bar — dadan.io style */}
             <div className="control-bar">
                 <button className={`btn-pill ${cameraStream ? 'active' : ''}`}
