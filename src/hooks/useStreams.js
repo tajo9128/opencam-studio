@@ -95,8 +95,8 @@ export const useStreams = (screenVideoRef, cameraVideoRef, setStatus) => {
             setStatus('ready');
             return stream;
         } catch (err) {
-            console.warn('Microphone not available:', err.message);
-            return null;
+            console.error('Mic error:', err);
+            throw err;
         }
     };
 
@@ -126,8 +126,8 @@ export const useStreams = (screenVideoRef, cameraVideoRef, setStatus) => {
             setStatus('ready');
             return stream;
         } catch (err) {
-            console.warn('Camera not available:', err.message);
-            return null;
+            console.error('Camera error:', err);
+            throw err;
         }
     };
 
