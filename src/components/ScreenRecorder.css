@@ -143,30 +143,35 @@
 }
 .rec-timer { font-family: monospace; }
 
-/* Settings panels - glass style matching editor */
+/* Settings drawer - bottom sheet */
 .settings-panel-overlay {
     position: fixed; inset: 0; z-index: 100;
-    display: flex; align-items: center; justify-content: center;
-    background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+    background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
+    display: flex; align-items: flex-end; justify-content: center;
 }
-.settings-panel {
-    position: relative; width: 380px; max-height: 75vh; overflow-y: auto;
-    background: var(--nav-bg); border-radius: 16px; padding: 1.5rem;
-    border: 1px solid var(--glass-border);
-    box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+.settings-drawer {
+    width: 100%; max-width: 800px; max-height: 60vh; overflow-y: auto;
+    background: var(--nav-bg); border-radius: 16px 16px 0 0;
+    padding: 1.5rem; border-top: 1px solid var(--glass-border);
     backdrop-filter: blur(20px);
 }
-.settings-close {
-    position: absolute; top: 1rem; right: 1rem; width: 28px; height: 28px;
-    border: 1px solid var(--glass-border); border-radius: 50%; background: var(--glass);
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-    color: var(--text-muted); font-size: 0.8rem; transition: all 0.15s;
+.drawer-handle {
+    width: 40px; height: 4px; border-radius: 2px; background: var(--glass-border);
+    margin: 0 auto 0.75rem;
 }
-.settings-close:hover { background: var(--glass-hover); color: var(--text-main); }
-.settings-close::after { content: ''; }
-.panel-content h3 { margin: 0 0 1rem; font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
-.panel-content h4 { margin: 1rem 0 0.5rem; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
-.panel-options { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.drawer-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;
+}
+.drawer-header h3 { margin: 0; font-size: 1rem; font-weight: 700; color: var(--text-main); }
+.drawer-close {
+    width: 28px; height: 28px; border: 1px solid var(--glass-border); border-radius: 50%;
+    background: var(--glass); color: var(--text-muted); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 1rem;
+}
+.drawer-close:hover { background: var(--glass-hover); color: var(--text-main); }
+.drawer-options {
+    display: flex; flex-wrap: wrap; gap: 0.5rem;
+}
 .panel-option {
     padding: 0.5rem 0.8rem; border: 1px solid var(--glass-border); border-radius: 8px;
     background: var(--glass); color: var(--text-main); font-size: 0.8rem; font-weight: 600;

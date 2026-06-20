@@ -65,7 +65,7 @@ const ScreenRecorder = () => {
     const [elapsedTime, setElapsedTime] = useState(0);
     const [recQuality, setRecQuality] = useState('720p');
     const [enhancedAudio, setEnhancedAudio] = useState(true);
-    const [activeBg, setActiveBg] = useState('gradient1');
+    const [activeBg, setActiveBg] = useState('none');
     const [directoryHandle, setDirectoryHandle] = useState(null);
     const [isStarting, setIsStarting] = useState(false);
     const [layoutTemplate, setLayoutTemplate] = useState('pip-circle');
@@ -79,7 +79,7 @@ const ScreenRecorder = () => {
     const isStartingRef = useRef(false);
     const pipPosRef = useRef({ corner: 'br', x: 0, y: 0 });
 
-    const { screenStream, audioStream, cameraStream, toggleScreen, toggleMic, toggleCamera, stopAll, screenDimensions } = useStreams(screenVideoRef, cameraVideoRef, () => {});
+    const { screenStream, audioStream, cameraStream, systemAudioStream, toggleScreen, toggleMic, toggleCamera, toggleSystemAudio, stopAll, screenDimensions } = useStreams(screenVideoRef, cameraVideoRef, () => {});
     const audioLevel = useAudioLevel(audioStream);
     const { processedStream } = useAudioProcessor(audioStream, enhancedAudio);
 
@@ -359,183 +359,185 @@ const ScreenRecorder = () => {
                         <span className="rec-timer">{fmtTime(elapsedTime)}</span>
                     </div>
                 )}
+            </div>
+            {/* recorder-main closes ^ */}
 
-                {/* Settings panels */}
-                {openPanel && (
-                    <div className="settings-panel-overlay" onClick={() => setOpenPanel(null)}>
-                        <div className="settings-panel" onClick={e => e.stopPropagation()}>
-                            <button className="settings-close" onClick={() => setOpenPanel(null)}></button>
-                            {openPanel === 'ratio' && (
-                                <div className="panel-content">
-                                    <h3>Aspect Ratio</h3>
-                                    <div className="panel-options">
-                                        {ASPECT_RATIOS.map(r => (
-                                            <button key={r.id} className={`panel-option ${aspectRatio === r.id ? 'selected' : ''}`}
-                                                onClick={() => { setAspectRatio(r.id); setOpenPanel(null); }}>{r.label}</button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                            {openPanel === 'background' && (
-                                <div className="panel-content">
-                                    <h3>Background</h3>
-                                    <div className="panel-options">
-                                        {BG_PRESETS.map(b => (
-                                            <button key={b.id} className={`panel-option bg-option ${activeBg === b.id ? 'selected' : ''}`}
-                                                onClick={() => { setActiveBg(b.id); setOpenPanel(null); }}
-                                                style={{ background: b.color }}>
-                                                {b.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                            {openPanel === 'layout' && (
-                                <div className="panel-content">
-                                    <h3>Recording Layout</h3>
-                                    <div className="panel-options">
-                                        {RECORDING_TEMPLATES.map(t => (
-                                            <button key={t.id} className={`panel-option ${layoutTemplate === t.id ? 'selected' : ''}`}
-                                                onClick={() => setLayoutTemplate(t.id)} title={t.desc}>
-                                                <span>{t.icon}</span> {t.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    {(layoutTemplate === 'pip-circle' || layoutTemplate === 'pip-rect') && (
-                                        <div className="corner-section">
-                                            <h4>Webcam Position</h4>
-                                            <div className="panel-options">
-                                                {[{ id: 'tl', label: '↖ Top Left' }, { id: 'tr', label: '↗ Top Right' },
-                                                  { id: 'bl', label: '↙ Bot Left' }, { id: 'br', label: '↘ Bot Right' }].map(c => (
-                                                    <button key={c.id} className={`panel-option ${pipCorner === c.id ? 'selected' : ''}`}
-                                                        onClick={() => setPipCorner(c.id)}>{c.label}</button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                            {openPanel === 'prompter' && (
-                                <div className="panel-content">
-                                    <h3>Teleprompter</h3>
-                                    <textarea className="prompter-textarea" value={prompterText}
-                                        onChange={e => setPrompterText(e.target.value)}
-                                        placeholder="Type your script here..." />
-                                    <div className="prompter-controls">
-                                        <label>Speed: <input type="range" min="1" max="10" value={prompterSpeed}
-                                            onChange={e => setPrompterSpeed(Number(e.target.value))} /></label>
-                                        <button className={`panel-option ${showTeleprompter ? 'selected' : ''}`}
-                                            onClick={() => setShowTeleprompter(!showTeleprompter)}>
-                                            {showTeleprompter ? 'Hide Prompter' : 'Show Prompter'}
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                            {openPanel === 'settings' && (
-                                <div className="panel-content">
-                                    <h3>Settings</h3>
-                                    <div className="settings-list">
-                                        <div className="setting-row">
-                                            <label>Quality</label>
-                                            <select value={recQuality} onChange={e => setRecQuality(e.target.value)}>
-                                                <option value="720p">720p HD</option>
-                                                <option value="1080p">1080p FHD</option>
-                                                <option value="1440p">1440p 2K</option>
-                                                <option value="native">Native</option>
-                                            </select>
-                                        </div>
-                                        <div className="setting-row">
-                                            <label>Enhanced Audio</label>
-                                            <button className={`panel-option ${enhancedAudio ? 'selected' : ''}`}
-                                                onClick={() => setEnhancedAudio(!enhancedAudio)}>
-                                                {enhancedAudio ? 'ON' : 'OFF'}
-                                            </button>
-                                        </div>
-                                        <div className="setting-row">
-                                            <label>Save Folder</label>
-                                            <button className="panel-option" onClick={selectFolder}>
-                                                 {directoryHandle ? directoryHandle.name : 'Select Folder'}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+            {/* Settings panel - bottom drawer style */}
+            {openPanel && (
+                <div className="settings-panel-overlay" onClick={() => setOpenPanel(null)}>
+                    <div className="settings-drawer" onClick={e => e.stopPropagation()}>
+                        <div className="drawer-handle" />
+                        <div className="drawer-header">
+                            <h3>{openPanel === 'ratio' ? 'Aspect Ratio' : openPanel === 'background' ? 'Background' : openPanel === 'layout' ? 'Layout' : openPanel === 'prompter' ? 'Teleprompter' : 'Settings'}</h3>
+                            <button className="drawer-close" onClick={() => setOpenPanel(null)}>×</button>
                         </div>
+                        {openPanel === 'ratio' && (
+                            <div className="drawer-options">
+                                {ASPECT_RATIOS.map(r => (
+                                    <button key={r.id} className={`panel-option ${aspectRatio === r.id ? 'selected' : ''}`}
+                                        onClick={() => { setAspectRatio(r.id); setOpenPanel(null); }}>{r.label}</button>
+                                ))}
+                            </div>
+                        )}
+                        {openPanel === 'background' && (
+                            <div className="drawer-options">
+                                {BG_PRESETS.map(b => (
+                                    <button key={b.id} className={`panel-option bg-option ${activeBg === b.id ? 'selected' : ''}`}
+                                        onClick={() => { setActiveBg(b.id); setOpenPanel(null); }}
+                                        style={{ background: b.color }}>{b.label}</button>
+                                ))}
+                            </div>
+                        )}
+                        {openPanel === 'layout' && (
+                            <div className="drawer-options">
+                                {RECORDING_TEMPLATES.map(t => (
+                                    <button key={t.id} className={`panel-option ${layoutTemplate === t.id ? 'selected' : ''}`}
+                                        onClick={() => setLayoutTemplate(t.id)} title={t.desc}>
+                                        <span>{t.icon}</span> {t.label}
+                                    </button>
+                                ))}
+                                {(layoutTemplate === 'pip-circle' || layoutTemplate === 'pip-rect') && (
+                                    <div className="drawer-options" style={{ width: '100%', marginTop: '0.5rem' }}>
+                                        {[{ id: 'tl', label: '↖ Top Left' }, { id: 'tr', label: '↗ Top Right' },
+                                          { id: 'bl', label: '↙ Bot Left' }, { id: 'br', label: '↘ Bot Right' }].map(c => (
+                                            <button key={c.id} className={`panel-option ${pipCorner === c.id ? 'selected' : ''}`}
+                                                onClick={() => setPipCorner(c.id)}>{c.label}</button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        {openPanel === 'prompter' && (
+                            <div className="drawer-options" style={{ flexDirection: 'column' }}>
+                                <textarea className="prompter-textarea" value={prompterText}
+                                    onChange={e => setPrompterText(e.target.value)}
+                                    placeholder="Type your script here..." />
+                                <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
+                                    <label style={{ flex: 1, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                        Speed: <input type="range" min="1" max="10" value={prompterSpeed}
+                                            onChange={e => setPrompterSpeed(Number(e.target.value))}
+                                            style={{ width: '100%', accentColor: 'var(--primary)' }} />
+                                    </label>
+                                    <button className={`panel-option ${showTeleprompter ? 'selected' : ''}`}
+                                        onClick={() => setShowTeleprompter(!showTeleprompter)}>
+                                        {showTeleprompter ? 'Hide' : 'Show'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                        {openPanel === 'settings' && (
+                            <div className="drawer-options" style={{ flexDirection: 'column', gap: '0.8rem' }}>
+                                <div className="setting-row">
+                                    <label>Quality</label>
+                                    <select value={recQuality} onChange={e => setRecQuality(e.target.value)}>
+                                        <option value="720p">720p</option><option value="1080p">1080p</option>
+                                        <option value="1440p">1440p</option><option value="native">Native</option>
+                                    </select>
+                                </div>
+                                <div className="setting-row">
+                                    <label>Enhanced Audio</label>
+                                    <button className={`panel-option ${enhancedAudio ? 'selected' : ''}`}
+                                        onClick={() => setEnhancedAudio(!enhancedAudio)}>{enhancedAudio ? 'ON' : 'OFF'}</button>
+                                </div>
+                                <div className="setting-row">
+                                    <label>Save Folder</label>
+                                    <button className="panel-option" onClick={selectFolder}>
+                                        {directoryHandle ? directoryHandle.name : 'Select'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
-                )}
-            </div>
+                </div>
+            )}
 
-            {/* Bottom toolbar — dadan.io style */}
+            {/* Toolbar - compact glass panel like editor transport */}
+            {!isRecording && (
             <div className="recorder-toolbar">
-                <div className="toolbar-group toolbar-sources">
-                    <button className={`toolbar-btn ${cameraStream ? 'active' : ''}`}
-                        onClick={async () => { const s = await toggleCamera(); if (s) {} else {} }}>
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-                            {cameraStream ? <><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></>
-                                : <><line x1="1" y1="1" x2="23" y2="23"/><path d="M21 21H3a2 2 0 01-2-2V8a2 2 0 012-2h3m3-3h6l2 3h4a2 2 0 012 2v9.34"/></>}
-                        </svg>
-                        <span>{cameraStream ? 'Cam On' : 'Show Cam'}</span>
-                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
-                    </button>
-                    <button className={`toolbar-btn ${audioStream ? 'active' : ''}`}
-                        onClick={async () => { const s = await toggleMic(); if (s) {} else {} }}>
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-                            {audioStream ? <><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></>
-                                : <><line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 005.12 2.12M15 9.34V4a3 3 0 00-5.94-.6"/><path d="M17 16.95A7 7 0 015 12v-2m14 0v2c0 .76-.13 1.49-.35 2.17"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></>}
-                        </svg>
-                        <span>{audioStream ? 'Mic On' : 'Enable Mic'}</span>
-                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
-                    </button>
-                    <button className={`toolbar-btn ${screenStream ? 'active' : ''}`}
-                        onClick={async () => { await toggleScreen(); }}>
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
-                        </svg>
-                        <span>{screenStream ? 'Screen On' : 'Show Screen'}</span>
-                    </button>
-                </div>
-
-                <div className="toolbar-divider" />
-
-                <div className="toolbar-group toolbar-tools">
-                    <button className={`toolbar-btn ${openPanel === 'ratio' ? 'active' : ''}`} onClick={() => togglePanel('ratio')}>
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="12" x2="21" y2="12"/></svg>
-                        <span>Ratio</span>
-                    </button>
-                    <button className={`toolbar-btn ${openPanel === 'background' ? 'active' : ''}`} onClick={() => togglePanel('background')}>
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                        <span>Background</span>
-                    </button>
-                    <button className={`toolbar-btn ${openPanel === 'layout' ? 'active' : ''}`} onClick={() => togglePanel('layout')}>
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                        <span>Layout</span>
-                    </button>
-                    <button className={`toolbar-btn ${openPanel === 'prompter' ? 'active' : ''}`} onClick={() => togglePanel('prompter')}>
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                        <span>Prompter</span>
-                    </button>
-                </div>
-
-                <div className="toolbar-divider" />
-
-                <div className="toolbar-group toolbar-actions">
-                    <button className={`toolbar-btn ${openPanel === 'settings' ? 'active' : ''}`} onClick={() => togglePanel('settings')}>
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-                        <span>Settings</span>
-                    </button>
-                    <button className={`toolbar-btn toolbar-record-btn ${isRecording ? 'recording' : ''}`}
-                        onClick={() => { if (isRecording) stopRecording(); else startFlow(); }}
-                        disabled={isStarting}>
-                        <span className="record-dot" />
-                        <span>{isRecording ? `Stop (${fmtTime(elapsedTime)})` : 'Record'}</span>
-                    </button>
-                    <button className={`toolbar-btn ${layoutTemplate.startsWith('pip') ? 'active' : ''}`}
-                        onClick={() => { setLayoutTemplate(layoutTemplate.startsWith('pip') ? 'screen-only' : 'pip-circle'); }}>
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="2"/><rect x="12" y="12" width="10" height="10" rx="1"/></svg>
-                        <span>PIP</span>
-                    </button>
+                <div className="toolbar-row">
+                    <div className="toolbar-group">
+                        <button className={`toolbar-btn ${cameraStream ? 'active' : ''}`} onClick={async () => { await toggleCamera(); }}>
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                            <span>{cameraStream ? 'Cam On' : 'Cam'}</span>
+                        </button>
+                        <button className={`toolbar-btn ${audioStream ? 'active' : ''}`} onClick={async () => { await toggleMic(); }}>
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/></svg>
+                            <span>{audioStream ? 'Mic On' : 'Mic'}</span>
+                        </button>
+                        <button className={`toolbar-btn ${screenStream ? 'active' : ''}`} onClick={async () => { await toggleScreen(); }}>
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/></svg>
+                            <span>{screenStream ? 'Screen' : 'Screen'}</span>
+                        </button>
+                        <button className={`toolbar-btn ${systemAudioStream ? 'active' : ''}`} onClick={toggleSystemAudio}>
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                            <span>Sys Audio</span>
+                        </button>
+                    </div>
+                    <div className="toolbar-divider" />
+                    <div className="toolbar-group">
+                        <button className={`toolbar-btn ${openPanel === 'ratio' ? 'active' : ''}`} onClick={() => togglePanel('ratio')}>
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="12" x2="21" y2="12"/></svg>
+                            <span>Ratio</span>
+                        </button>
+                        <button className={`toolbar-btn ${openPanel === 'background' ? 'active' : ''}`} onClick={() => togglePanel('background')}>
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                            <span>BG</span>
+                        </button>
+                        <button className={`toolbar-btn ${openPanel === 'layout' ? 'active' : ''}`} onClick={() => togglePanel('layout')}>
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                            <span>Layout</span>
+                        </button>
+                        <button className={`toolbar-btn ${openPanel === 'prompter' ? 'active' : ''}`} onClick={() => togglePanel('prompter')}>
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="8" y1="2" x2="8" y2="22"/><line x1="16" y1="2" x2="16" y2="22"/><line x1="2" y1="8" x2="22" y2="8"/><line x1="2" y1="16" x2="22" y2="16"/></svg>
+                            <span>Prompter</span>
+                        </button>
+                        <button className={`toolbar-btn ${openPanel === 'settings' ? 'active' : ''}`} onClick={() => togglePanel('settings')}>
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4"/></svg>
+                            <span>Settings</span>
+                        </button>
+                        <button className="toolbar-btn" onClick={selectFolder}>
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                            <span>{directoryHandle ? directoryHandle.name : 'Folder'}</span>
+                        </button>
+                    </div>
+                    <div className="toolbar-divider" />
+                    <div className="toolbar-group">
+                        <button className="toolbar-btn toolbar-record-btn" onClick={startFlow} disabled={isStarting}>
+                            <span className="record-dot" />
+                            <span>Record</span>
+                        </button>
+                        <button className={`toolbar-btn ${layoutTemplate.startsWith('pip') ? 'active' : ''}`}
+                            onClick={() => { setLayoutTemplate(layoutTemplate.startsWith('pip') ? 'screen-only' : 'pip-circle'); }}>
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="2"/><rect x="13" y="13" width="9" height="9" rx="1"/></svg>
+                            <span>PIP</span>
+                        </button>
+                    </div>
                 </div>
             </div>
+            )}
+
+            {/* Recording bar */}
+            {isRecording && (
+                <div className="recorder-toolbar" style={{ gap: '0.75rem' }}>
+                    <span className="rec-dot" style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--danger)', animation: 'rec-pulse 1.5s infinite' }} />
+                    <span style={{ fontFamily: 'monospace', fontSize: '0.9rem', fontWeight: 700, color: 'var(--danger)' }}>{fmtTime(elapsedTime)}</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>· {recQuality} · ~{Math.round(elapsedTime * QUALITY_PRESETS[recQuality].bitrate / 8000000)} MB</span>
+                    <div className="toolbar-divider" />
+                    {isPaused ? (
+                        <button className="toolbar-btn" onClick={resumeRecording} style={{ color: 'var(--success)', borderColor: 'var(--success)' }}>Resume</button>
+                    ) : (
+                        <button className="toolbar-btn" onClick={pauseRecording}>Pause</button>
+                    )}
+                    <button className="toolbar-btn" onClick={stopRecording} style={{ color: 'var(--danger)', fontWeight: 700 }}>Stop</button>
+                    <div className="toolbar-divider" />
+                    <button className={`toolbar-btn ${cameraStream ? 'active' : ''}`} onClick={async () => { await toggleCamera(); }}>
+                        {cameraStream ? 'Cam ON' : 'Cam OFF'}
+                    </button>
+                    <button className={`toolbar-btn ${audioStream ? 'active' : ''}`} onClick={async () => { await toggleMic(); }}>
+                        {audioStream ? 'Mic ON' : 'Mic OFF'}
+                    </button>
+                </div>
+            )}
 
             <Toast toast={toast} onClose={() => setToast(null)} />
         </div>
