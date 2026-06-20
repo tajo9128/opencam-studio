@@ -134,6 +134,10 @@ export const useTimeline = () => {
 
     const removeClip = useCallback((id) => {
         pushUndo(clips, tracks);
+        const clip = clips.find(c => c.id === id);
+        const vid = videoCacheRef.current.get(id);
+        if (vid) { vid.pause(); vid.src = ''; videoCacheRef.current.delete(id); }
+        if (clip?.sourceUrl) URL.revokeObjectURL(clip.sourceUrl);
         setClips(prev => {
             const updated = prev.filter(c => c.id !== id);
             updateDuration(updated);
@@ -318,10 +322,17 @@ export const useTimeline = () => {
         if (!clip.sourceUrl) return null;
         let video = videoCacheRef.current.get(clip.id);
         if (!video) {
+            // Limit cache to 10 videos to prevent OOM
+            if (videoCacheRef.current.size >= 10) {
+                const first = videoCacheRef.current.keys().next().value;
+                const old = videoCacheRef.current.get(first);
+                if (old) { old.pause(); old.src = ''; }
+                videoCacheRef.current.delete(first);
+            }
             video = document.createElement('video');
             video.muted = true;
             video.playsInline = true;
-            video.preload = 'auto';
+            video.preload = 'metadata';
             video.src = clip.sourceUrl;
             videoCacheRef.current.set(clip.id, video);
         }
