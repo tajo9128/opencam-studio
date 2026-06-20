@@ -1,11 +1,11 @@
-# Contributing to ScreenStudio
+# Contributing to BioDockify Studio
 
-First off, thank you for considering contributing to ScreenStudio! It's people like you that make this project great.
+First off, thank you for considering contributing to BioDockify Studio! It's people like you that make this project great.
 
 ## Table of Contents
 
 - [Code of Conduct](#code-of-conduct)
-- [What is ScreenStudio?](#what-is-screenstudio)
+- [What is BioDockify Studio?](#what-is-BioDockify Studio)
 - [How Can I Contribute?](#how-can-i-contribute)
 - [Development Setup](#development-setup)
 - [Project Structure](#project-structure)
@@ -18,9 +18,9 @@ First off, thank you for considering contributing to ScreenStudio! It's people l
 
 By participating in this project, you are expected to uphold our [Code of Conduct](CODE_OF_CONDUCT.md).
 
-## What is ScreenStudio?
+## What is BioDockify Studio?
 
-ScreenStudio is the hybrid of **OBS Studio** + **Loom** + **Kdenlive** — a free, open-source, browser-based screen recorder + video editor + live streamer + webinar tool. It features:
+BioDockify Studio is the hybrid of **OBS Studio** + **Loom** + **Kdenlive** — a free, open-source, browser-based screen recorder + video editor + live streamer + webinar tool. It features:
 
 - **6 modes**: Record, Edit, Stream, Webinar, Export, Settings
 - **33 video filters**, **13 transitions**, **14 audio effects**
@@ -62,15 +62,15 @@ ScreenStudio is the hybrid of **OBS Studio** + **Loom** + **Kdenlive** — a fre
 * **Improve documentation** — README, code comments, wiki
 * **Add tests** — We currently lack unit tests; help us add them
 * **Design feedback** — UI/UX suggestions for the 6 modes
-* **Accessibility** — Help make ScreenStudio usable for everyone
+* **Accessibility** — Help make BioDockify Studio usable for everyone
 * **Translations** — i18n support is planned
 
 ## Development Setup
 
 ```bash
 # Clone your fork
-git clone https://github.com/YOUR_USERNAME/screenstudio.git
-cd screenstudio
+git clone https://github.com/YOUR_USERNAME/BioDockify Studio.git
+cd BioDockify Studio
 
 # Install dependencies
 npm install
@@ -107,7 +107,7 @@ docker-compose up --build
 ## Project Structure
 
 ```
-screenstudio/
+BioDockify Studio/
 ├── src/
 │   ├── components/
 │   │   ├── AppShell/          # App layout (TopBar + sidebar + main + bottom)
@@ -159,9 +159,9 @@ screenstudio/
 │   ├── Dockerfile             # Relay Docker image
 │   └── package.json
 ├── public/
-├── docker-compose.yml         # Base: screenstudio + rtmp-relay
+├── docker-compose.yml         # Base: BioDockify Studio + rtmp-relay
 ├── docker-compose.vps.yml     # VPS: + Ollama
-├── docker-compose.full.yml    # Full: screenstudio + Ollama + RTMP relay
+├── docker-compose.full.yml    # Full: BioDockify Studio + Ollama + RTMP relay
 ├── Dockerfile                 # Multi-stage: Node build → Nginx serve
 └── vite.config.js             # Vite config (port 3000)
 ```

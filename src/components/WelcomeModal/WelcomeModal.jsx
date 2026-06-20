@@ -24,10 +24,10 @@ export const WelcomeModal = ({ isOpen, onFolderSelected, onSkip }) => {
             <div className="welcome-modal">
                 <div className="welcome-logo">
                     <div className="welcome-logo-icon">S</div>
-                    <h1>ScreenStudio</h1>
+                    <h1>BioDockify Studio</h1>
                 </div>
 
-                <h2>Welcome to ScreenStudio</h2>
+                <h2>Welcome to BioDockify Studio</h2>
                 <p className="welcome-desc">
                     Free, private screen recorder with webcam overlay, AI editing, and YouTube upload.
                     All recordings save directly to your local PC.

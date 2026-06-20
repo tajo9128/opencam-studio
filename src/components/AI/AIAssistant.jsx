@@ -69,7 +69,7 @@ export const AIAssistant = ({
                     <div className="ai-drawer-header">
                         <div className="ai-drawer-header-left">
                             <span className="ai-drawer-icon">AI</span>
-                            <span className="ai-drawer-title">ScreenStudio AI</span>
+                            <span className="ai-drawer-title">BioDockify Studio AI</span>
                             <span className={`ai-drawer-status ${ollamaConnected ? 'connected' : apiKey ? 'connected' : 'local'}`}>
                                 {ollamaConnected ? `Ollama: ${ollamaModel || 'ready'}` : apiKey ? 'API' : 'Local'}
                             </span>

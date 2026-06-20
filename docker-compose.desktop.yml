@@ -1,8 +1,8 @@
-# Docker Desktop — ScreenStudio + Ollama on host machine
+# Docker Desktop — BioDockify Studio + Ollama on host machine
 # Usage: docker compose -f docker-compose.desktop.yml up -d
 # Ollama must be installed separately on the host (ollama.com)
 services:
-  screenstudio:
+  BioDockify Studio:
     build: .
     ports:
       - "3000:80"

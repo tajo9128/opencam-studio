@@ -55,7 +55,7 @@ export const useScenes = () => {
     const [scenes, setScenes] = useState(() => {
         // Load from localStorage or use defaults
         try {
-            const saved = localStorage.getItem('screenstudio_scenes');
+            const saved = localStorage.getItem('BioDockify Studio_scenes');
             if (saved) {
                 const loaded = JSON.parse(saved);
                 // Scan loaded IDs to advance counters and prevent collisions
@@ -82,7 +82,7 @@ export const useScenes = () => {
     const activeScene = scenes.find(s => s.id === activeSceneId) || scenes[0];
 
     const persist = useCallback((updated) => {
-        try { localStorage.setItem('screenstudio_scenes', JSON.stringify(updated)); } catch { /* storage full */ }
+        try { localStorage.setItem('BioDockify Studio_scenes', JSON.stringify(updated)); } catch { /* storage full */ }
     }, []);
 
     const addScene = useCallback((name = 'New Scene', color = '#8b5cf6') => {

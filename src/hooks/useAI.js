@@ -6,7 +6,7 @@ const OLLAMA_ENDPOINTS = ['/api/ollama', 'http://localhost:11434'];
 
 export const useAI = () => {
     const [messages, setMessages] = useState([
-        { role: 'assistant', content: 'Hi! I\'m ScreenStudio AI. Try: "trim first 5 seconds", "apply sepia filter", "set speed to 2x", or type "help" for all commands.' }
+        { role: 'assistant', content: 'Hi! I\'m BioDockify Studio AI. Try: "trim first 5 seconds", "apply sepia filter", "set speed to 2x", or type "help" for all commands.' }
     ]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isStreaming, setIsStreaming] = useState(false);
@@ -249,10 +249,10 @@ export const useAI = () => {
         } catch { return null; }
     }, [apiKey, apiEndpoint, model]);
 
-    // Paid API fallback using screenstudio_api_key / screenstudio_api_provider
+    // Paid API fallback using BioDockify Studio_api_key / BioDockify Studio_api_provider
     const callPaidFallback = useCallback(async (input, recentMessages) => {
-        const fallbackKey = localStorage.getItem('screenstudio_api_key');
-        const fallbackProvider = localStorage.getItem('screenstudio_api_provider');
+        const fallbackKey = localStorage.getItem('BioDockify Studio_api_key');
+        const fallbackProvider = localStorage.getItem('BioDockify Studio_api_provider');
         if (!fallbackKey) return null;
 
         // Build endpoint from provider name
@@ -373,7 +373,7 @@ export const useAI = () => {
                 if (!command && apiKey) {
                     command = await callLLM(input, recentMessages);
                 }
-                // Last resort: paid API fallback via screenstudio_api_key
+                // Last resort: paid API fallback via BioDockify Studio_api_key
                 if (!command) {
                     command = await callPaidFallback(input, recentMessages);
                 }

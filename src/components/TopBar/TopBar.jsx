@@ -22,7 +22,7 @@ export const TopBar = () => {
             <div className="topbar-left">
                 <div className="topbar-logo" onClick={() => navigate('/')}>
                     <div className="topbar-logo-icon">S</div>
-                    <span className="topbar-logo-text">ScreenStudio</span>
+                    <span className="topbar-logo-text">BioDockify</span>
                 </div>
             </div>
 

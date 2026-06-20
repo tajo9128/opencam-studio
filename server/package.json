@@ -1,7 +1,7 @@
 {
-  "name": "screenstudio-rtmp-relay",
+  "name": "BioDockify Studio-rtmp-relay",
   "version": "1.0.0",
-  "description": "WebSocket to RTMP relay for ScreenStudio streaming",
+  "description": "WebSocket to RTMP relay for BioDockify Studio streaming",
   "main": "rtmp-relay.js",
   "scripts": {
     "start": "node rtmp-relay.js"

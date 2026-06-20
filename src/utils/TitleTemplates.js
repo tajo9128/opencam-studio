@@ -174,7 +174,7 @@ export const TITLE_TEMPLATES = {
         description: 'Semi-transparent corner watermark',
         render: (ctx, canvas, params = {}) => {
             const {
-                text = 'ScreenStudio',
+                text = 'BioDockify Studio',
                 position = 'bottom-right', // top-left, top-right, bottom-left, bottom-right
                 opacity = 0.4,
                 fontSize = 0.03,

@@ -134,9 +134,9 @@ export const useYouTube = () => {
         try {
             const videoMetadata = {
                 snippet: {
-                    title: metadata.title || 'ScreenStudio Recording',
-                    description: metadata.description || 'Recorded with ScreenStudio',
-                    tags: metadata.tags || ['screen recording', 'screenstudio'],
+                    title: metadata.title || 'BioDockify Studio Recording',
+                    description: metadata.description || 'Recorded with BioDockify Studio',
+                    tags: metadata.tags || ['screen recording', 'BioDockify Studio'],
                     categoryId: metadata.categoryId || '22',
                 },
                 status: {

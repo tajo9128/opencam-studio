@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="public/favicon.svg" width="80" alt="ScreenStudio Logo">
+  <img src="public/favicon.svg" width="80" alt="BioDockify Studio Logo">
 </p>
 
-<h1 align="center">ScreenStudio</h1>
+<h1 align="center">BioDockify Studio</h1>
 
 <p align="center">
   <strong>Record. Edit. Stream. Export. &mdash; All in your browser.</strong>
@@ -13,16 +13,16 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/tajo9128/screenstudio/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
+  <a href="https://github.com/tajo9128/biodockifystudio/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
   <img src="https://img.shields.io/badge/platform-Chrome%20%7C%20Edge%20%7C%20Firefox-brightgreen" alt="Platforms">
   <img src="https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white" alt="Docker Ready">
 </p>
 
 ---
 
-## What is ScreenStudio?
+## What is BioDockify Studio?
 
-ScreenStudio is a **browser-based screen recorder, video editor, and live streamer** &mdash; no downloads, no installs, no accounts required. It runs entirely in your browser, or as a Docker container on your server.
+BioDockify Studio is a **browser-based screen recorder, video editor, and live streamer** &mdash; no downloads, no installs, no accounts required. It runs entirely in your browser, or as a Docker container on your server.
 
 | | Feature | Details |
 |---|---|---|
@@ -40,7 +40,7 @@ ScreenStudio is a **browser-based screen recorder, video editor, and live stream
 
 ```bash
 # Pull and run
-docker run -p 3000:80 tajo9128/screenstudio:v1.0.0
+docker run -p 3000:80 tajo9128/biodockifystudio:v1.0.0
 
 # Open http://localhost:3000
 ```
@@ -49,8 +49,8 @@ docker run -p 3000:80 tajo9128/screenstudio:v1.0.0
 
 ```bash
 # Clone the repo
-git clone https://github.com/tajo9128/screenstudio.git
-cd screenstudio
+git clone https://github.com/tajo9128/biodockifystudio.git
+cd BioDockify Studio
 
 # Start everything (app + RTMP relay for streaming)
 docker compose -f docker-compose.full.yml up -d
@@ -61,8 +61,8 @@ docker compose -f docker-compose.full.yml up -d
 ### Option 3: Development
 
 ```bash
-git clone https://github.com/tajo9128/screenstudio.git
-cd screenstudio
+git clone https://github.com/tajo9128/biodockifystudio.git
+cd BioDockify Studio
 npm install
 npm run dev
 
@@ -75,8 +75,8 @@ npm run dev
 
 | Image | Description | Tag |
 |---|---|---|
-| `tajo9128/screenstudio` | Frontend (Nginx) | `v1.0.0` |
-| `tajo9128/screenstudio-relay` | RTMP relay server | `v1.0.0` |
+| `tajo9128/biodockifystudio` | Frontend (Nginx) | `v1.0.0` |
+| `tajo9128/biodockifystudio-relay` | RTMP relay server | `v1.0.0` |
 
 ### Docker Compose Files
 
@@ -213,8 +213,8 @@ Tier 3: Paid API        -->  OpenAI / Anthropic / any OpenAI-compatible API
 
 ```bash
 # Fork, clone, install
-git clone https://github.com/YOUR_USERNAME/screenstudio.git
-cd screenstudio
+git clone https://github.com/YOUR_USERNAME/BioDockify Studio.git
+cd BioDockify Studio
 npm install
 
 # Create feature branch

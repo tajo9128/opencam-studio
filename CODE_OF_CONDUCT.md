@@ -1,4 +1,4 @@
-# ScreenStudio Code of Conduct
+# BioDockify Studio Code of Conduct
 
 ## Our Pledge
 

@@ -1,6 +1,6 @@
 {
-    "name": "ScreenStudio",
-    "short_name": "ScreenStudio",
+    "name": "BioDockify Studio",
+    "short_name": "BioDockify",
     "description": "Free, private screen recorder with webcam overlay and AI editing",
     "start_url": "/",
     "display": "standalone",

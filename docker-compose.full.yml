@@ -1,8 +1,8 @@
-# Full Stack — ScreenStudio + Ollama + RTMP Relay for live streaming
+# Full Stack — BioDockify Studio + Ollama + RTMP Relay for live streaming
 # Usage: docker compose -f docker-compose.full.yml up -d
 # Stream to YouTube: set stream key in Settings, relay handles RTMP
 services:
-  screenstudio:
+  BioDockify Studio:
     build: .
     ports:
       - "3000:80"

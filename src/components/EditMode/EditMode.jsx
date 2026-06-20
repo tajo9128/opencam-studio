@@ -616,12 +616,12 @@ export const EditMode = () => {
                 <button className="btn btn-outline" style={{ fontSize: '0.65rem', padding: '0.25rem 0.5rem' }}
                     onClick={() => {
                         const project = { clips: timeline.clips, tracks: timeline.tracks, savedAt: Date.now() };
-                        localStorage.setItem('screenstudio_project', JSON.stringify(project));
+                        localStorage.setItem('BioDockify Studio_project', JSON.stringify(project));
                         alert('Project saved!');
                     }}>Save</button>
                 <button className="btn btn-outline" style={{ fontSize: '0.65rem', padding: '0.25rem 0.5rem' }}
                     onClick={() => {
-                        const saved = localStorage.getItem('screenstudio_project');
+                        const saved = localStorage.getItem('BioDockify Studio_project');
                         if (!saved) return alert('No saved project found.');
                         const project = JSON.parse(saved);
                         project.clips.forEach(c => timeline.addClip(c.trackIndex, c));
