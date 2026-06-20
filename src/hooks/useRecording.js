@@ -104,11 +104,16 @@ export const useRecording = ({
             // --- VIDEO TRACKS ---
             const videoTracks = [];
             if (useCanvas) {
-                if (!canvasRef.current) throw new Error('Canvas not found');
-                const canvasStream = canvasRef.current.captureStream(30);
-                videoTracks.push(...canvasStream.getVideoTracks());
-            } else if (screenStream) {
-                videoTracks.push(...screenStream.getVideoTracks());
+                if (canvasRef?.current) {
+                    const canvasStream = canvasRef.current.captureStream(30);
+                    const ct = canvasStream.getVideoTracks();
+                    if (ct.length > 0) videoTracks.push(...ct);
+                }
+            }
+            // Fallback: if canvas has no tracks, use direct streams
+            if (videoTracks.length === 0) {
+                if (screenStream) videoTracks.push(...screenStream.getVideoTracks());
+                if (cameraStream) videoTracks.push(...cameraStream.getVideoTracks());
             }
 
             const videoMimeType = pickMimeType(false);
