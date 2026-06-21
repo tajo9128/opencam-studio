@@ -23,7 +23,7 @@ class JobQueue {
             error: null,
         };
         this.jobs.set(jobId, job);
-        this.queue.push({ jobId, project, clips });
+        this.queue.push({ jobId, projectId, project, clips });
         this.processNext();
         return job;
     }
@@ -79,7 +79,9 @@ class JobQueue {
             meltArgs.push('mlt_service=avformat', 'vcodec=libx264', 'acodec=aac');
         }
 
-        const proc = spawn('melt', meltArgs);
+        const proc = spawn('melt', meltArgs, {
+            env: { ...process.env, MLT_REPOSITORY: '/usr/local/lib/mlt-7' },
+        });
         this.active.proc = proc;
 
         let stderr = '';

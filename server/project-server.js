@@ -243,7 +243,13 @@ app.post('/api/projects/:id/render', (req, res) => {
 
     const params = req.body || {};
     const job = jobQueue.createJob(req.params.id, params, data.project, data.clips);
-    res.json(job);
+    res.json({
+        id: job.id,
+        projectId: job.projectId,
+        status: job.status,
+        progress: job.progress,
+        createdAt: job.createdAt,
+    });
 });
 
 app.get('/api/jobs/:jobId', (req, res) => {

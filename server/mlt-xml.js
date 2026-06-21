@@ -22,8 +22,7 @@ function jsonToMlt(project, clips) {
         for (const clip of (track.clips || [])) {
             if (clip.clipId && !addedClips.has(clip.clipId)) {
                 addedClips.add(clip.clipId);
-                const clipInfo = clips[clip.clipId] || {};
-                const resource = clipInfo.sourceUrl || `/videos/${clip.clipId}.mp4`;
+                const resource = `/videos/${clip.clipId}.mp4`;
                 xml += `  <producer id="clip-${clip.clipId}">
                 <property name="resource">${escapeXml(resource)}</property>
                 <property name="mlt_service">avformat</property>

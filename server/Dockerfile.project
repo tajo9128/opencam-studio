@@ -21,7 +21,7 @@ RUN cmake .. \
     make -j$(nproc) && \
     make install
 
-FROM node:20-alpine
+FROM node:20-alpine3.20
 
 RUN apk add --no-cache \
     ffmpeg frei0r-plugins \
@@ -29,8 +29,8 @@ RUN apk add --no-cache \
 
 COPY --from=mlt-builder /usr/local /usr/local
 
-ENV MLT_PATH=/usr/local/lib/mlt \
-    MLT_REPOSITORY=/usr/local/lib/mlt \
+ENV MLT_PATH=/usr/local/lib/mlt-7 \
+    MLT_REPOSITORY=/usr/local/lib/mlt-7 \
     PATH=/usr/local/bin:${PATH}
 
 WORKDIR /app

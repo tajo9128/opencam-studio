@@ -1,0 +1,4 @@
+FROM biodockifystudio-project-server:latest
+COPY job-queue.js /app/
+COPY project-server.js /app/
+COPY mlt-xml.js /app/
