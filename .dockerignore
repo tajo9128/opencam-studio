@@ -8,5 +8,4 @@ dist
 *.log
 Dockerfile*
 docker-compose*
-server
 *.sh

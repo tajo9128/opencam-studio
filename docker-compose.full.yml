@@ -1,16 +1,21 @@
-# Full Stack — BioDockify Studio + Ollama + RTMP Relay for live streaming
+# Full Stack — BioDockify Studio + Ollama
 # Usage: docker compose -f docker-compose.full.yml up -d
 services:
   biodockifystudio:
-    build: .
+    build:
+      context: .
+      dockerfile: server/Dockerfile.allinone
     ports:
       - "3000:80"
     restart: unless-stopped
-    depends_on:
-      - ollama
-      - rtmp-relay
-      - recording-server
-      - project-server
+    volumes:
+      - videos:/videos
+      - proxies:/proxies
+      - projects:/projects
+      - output:/output
+      - recordings:/recordings
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   ollama:
     image: ollama/ollama:latest
@@ -20,54 +25,10 @@ services:
       - ollama_data:/root/.ollama
     restart: unless-stopped
 
-  rtmp-relay:
-    build: ./server
-    ports:
-      - "8080:8080"
-    restart: unless-stopped
-
-  recording-server:
-    build:
-      context: ./server
-      dockerfile: Dockerfile.recording
-    ports:
-      - "8081:8081"
-    restart: unless-stopped
-    volumes:
-      - recordings:/recordings
-      - proxies:/proxies
-      - output:/output
-      - projects:/projects
-    environment:
-      - PORT=8081
-      - RECORDINGS_DIR=/recordings
-      - PROXIES_DIR=/proxies
-      - OUTPUT_DIR=/output
-      - PROJECTS_DIR=/projects
-
-  project-server:
-    build:
-      context: ./server
-      dockerfile: Dockerfile.project
-    ports:
-      - "8082:8082"
-    restart: unless-stopped
-    volumes:
-      - videos:/videos
-      - proxies:/proxies
-      - projects:/projects
-      - output:/output
-    environment:
-      - PORT=8082
-      - VIDEOS_DIR=/videos
-      - PROXIES_DIR=/proxies
-      - PROJECTS_DIR=/projects
-      - OUTPUT_DIR=/output
-
 volumes:
   ollama_data:
-  recordings:
-  proxies:
-  output:
-  projects:
   videos:
+  proxies:
+  projects:
+  output:
+  recordings:

@@ -1,35 +1,26 @@
-# Docker Desktop — BioDockify Studio + Ollama on host machine
-# Usage: docker compose -f docker-compose.desktop.yml up -d
+# Docker Desktop — BioDockify Studio (single container)
 # Ollama must be installed separately on the host (ollama.com)
+# Usage: docker compose -f docker-compose.desktop.yml up -d
 services:
   biodockifystudio:
-    build: .
+    build:
+      context: .
+      dockerfile: server/Dockerfile.allinone
     ports:
       - "3000:80"
     restart: unless-stopped
+    volumes:
+      - videos:/videos
+      - proxies:/proxies
+      - projects:/projects
+      - output:/output
+      - recordings:/recordings
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    depends_on:
-      - recording-server
-
-  recording-server:
-    build:
-      context: ./server
-      dockerfile: Dockerfile.recording
-    ports:
-      - "8081:8081"
-    restart: unless-stopped
-    volumes:
-      - recordings:/recordings
-      - proxies:/proxies
-      - output:/output
-    environment:
-      - PORT=8081
-      - RECORDINGS_DIR=/recordings
-      - PROXIES_DIR=/proxies
-      - OUTPUT_DIR=/output
 
 volumes:
-  recordings:
+  videos:
   proxies:
+  projects:
   output:
+  recordings:

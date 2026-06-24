@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { ToolSidebar } from '../Sidebar/ToolSidebar';
 import { RightPanel } from '../RightPanel/RightPanel';
@@ -566,7 +566,9 @@ export const EditMode = () => {
                 <ToolSidebar activeTool={activeTool} onToolChange={handleToolChange} onUpload={triggerUpload} />
 
                 <div className="edit-mode-canvas">
-                    {timeline.clips.length === 0 && !projectId ? (
+                    {projectLoading ? (
+                        <div className="edit-drop-zone"><div className="edit-drop-zone-inner"><h3>Loading project...</h3></div></div>
+                    ) : timeline.clips.length === 0 && !projectId ? (
                         <div className="edit-drop-zone" onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}
                             onClick={() => fileInputRef.current?.click()}>
                             <div className="edit-drop-zone-inner">

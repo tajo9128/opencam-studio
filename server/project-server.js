@@ -286,6 +286,7 @@ app.get('/api/jobs/:jobId/output', (req, res) => {
     if (!job || job.status !== 'done' || !job.outputPath) {
         return res.status(404).json({ error: 'Output not available' });
     }
+    res.setHeader('Content-Disposition', 'attachment; filename="render.mp4"');
     serveFile(req, res, job.outputPath, 'video/mp4');
 });
 
