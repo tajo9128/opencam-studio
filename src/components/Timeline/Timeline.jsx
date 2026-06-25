@@ -9,6 +9,7 @@ export const Timeline = ({
     clips, tracks, currentTime, duration, selectedClipId, isPlaying, zoom,
     onSelectClip, onSeek, onSplit, onDelete, onMove, onResize, onPlay, onPause, onStop, onZoomChange,
     onDuplicate, onSpeed, onAddTrack, onRemoveTrack, onToggleMute, onToggleLock,
+    onDropExternal,
     clipThumbnails = {},
 }) => {
     const containerRef = useRef(null);
@@ -269,7 +270,19 @@ export const Timeline = ({
             </div>
 
             {/* Timeline body */}
-            <div className="tl-scroll" ref={scrollRef} onClick={handleTimelineClick}>
+            <div className="tl-scroll" ref={scrollRef} onClick={handleTimelineClick}
+                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
+                onDrop={(e) => {
+                    e.preventDefault();
+                    const clipId = e.dataTransfer.getData('clipId');
+                    if (!clipId || !onDropExternal) return;
+                    const rect = scrollRef.current.getBoundingClientRect();
+                    const x = e.clientX - rect.left + scrollRef.current.scrollLeft;
+                    const y = e.clientY - rect.top;
+                    const trackIndex = Math.max(0, Math.min(tracks.length - 1, Math.floor(y / TRACK_HEIGHT)));
+                    const time = Math.max(0, xToTime(x));
+                    onDropExternal(clipId, trackIndex, time);
+                }}>
                 <div className="tl-ruler" style={{ width: totalWidth }}>
                     {renderTimeMarkers()}
                 </div>

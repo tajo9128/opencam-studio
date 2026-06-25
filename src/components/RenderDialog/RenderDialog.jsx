@@ -48,7 +48,7 @@ export default function RenderDialog({ projectId, onClose }) {
                     clearInterval(pollRef.current);
                     if (job.error) setError(job.error);
                 }
-            } catch {}
+            } catch { /* ignore poll errors */ }
         }, 1000);
         return () => clearInterval(pollRef.current);
     }, [jobId]);

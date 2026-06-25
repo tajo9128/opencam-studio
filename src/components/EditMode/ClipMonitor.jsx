@@ -40,6 +40,18 @@ export const ClipMonitor = ({ clip, onInsert, onOverwrite, onClose }) => {
     const handleInsert = () => onInsert({ sourceStart: inPoint, sourceEnd: outPoint, duration: outPoint - inPoint });
     const handleOverwrite = () => onOverwrite({ sourceStart: inPoint, sourceEnd: outPoint, duration: outPoint - inPoint });
 
+    useEffect(() => {
+        const onKey = (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.key === 'i' || e.key === 'I') { e.preventDefault(); setInPoint(currentTime); }
+            if (e.key === 'o' || e.key === 'O') { e.preventDefault(); setOutPoint(currentTime); }
+            if (e.key === ' ') { e.preventDefault(); togglePlay(); }
+            if (e.key === 'Escape') { onClose(); }
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [currentTime, togglePlay, onClose]);
+
     if (!clip) return null;
 
     const fmt = (s) => {
@@ -56,7 +68,7 @@ export const ClipMonitor = ({ clip, onInsert, onOverwrite, onClose }) => {
                     <button onClick={onClose}>×</button>
                 </div>
                 <div className="cm-viewer">
-                    <video ref={videoRef} src={clip.url} muted />
+                    <video ref={videoRef} src={clip.url} />
                     <div className="cm-in-marker" style={{ left: `${(inPoint / duration) * 100}%` }} title="In Point" />
                     <div className="cm-out-marker" style={{ left: `${(outPoint / duration) * 100}%` }} title="Out Point" />
                 </div>

@@ -140,6 +140,11 @@ export const EditMode = () => {
 
     const selectedClip = timeline.clips.find(c => c.id === timeline.selectedClipId);
 
+    // Find the clip at the current playhead position for preview
+    const activeClip = timeline.clips.find(c =>
+        timeline.currentTime >= c.startTime && timeline.currentTime < c.startTime + c.duration
+    ) || timeline.clips[0];
+
     // Sync activeFilters from selected clip when selection changes
     useEffect(() => {
         setActiveFilters(selectedClip?.filters || []);
@@ -268,6 +273,19 @@ export const EditMode = () => {
     const handleBinImport = useCallback((files) => {
         clipBin.importFiles(files);
     }, [clipBin]);
+
+    const handleDropExternal = useCallback((clipId, trackIndex, startTime) => {
+        const binClip = clipBin.clips.find(c => c.id === clipId);
+        if (!binClip) return;
+        timeline.addClip(trackIndex, {
+            sourceUrl: binClip.url,
+            duration: binClip.duration || 10,
+            sourceEnd: binClip.duration || 10,
+            startTime,
+            label: binClip.name.replace(/\.[^/.]+$/, ''),
+            type: binClip.type?.startsWith('audio') ? 'audio' : 'video',
+        });
+    }, [clipBin.clips, timeline]);
 
     const handlePreviewClip = useCallback((clip) => {
         setPreviewClip(clip);
@@ -538,22 +556,20 @@ export const EditMode = () => {
     // Sync preview video with timeline playback
     useEffect(() => {
         const vid = previewVideoRef.current;
-        if (!vid || timeline.clips.length === 0) return;
+        if (!vid || timeline.clips.length === 0 || !activeClip) return;
+
+        const sourceTime = (timeline.currentTime - activeClip.startTime) + (activeClip.sourceStart || 0);
 
         if (timeline.isPlaying) {
-            const clip = timeline.clips[0];
-            const sourceTime = (timeline.currentTime - clip.startTime) + (clip.sourceStart || 0);
             if (Math.abs(vid.currentTime - sourceTime) > 0.3) {
-                vid.currentTime = sourceTime;
+                vid.currentTime = Math.max(0, sourceTime);
             }
             if (vid.paused) vid.play().catch(() => {});
         } else {
             if (!vid.paused) vid.pause();
-            const clip = timeline.clips[0];
-            const sourceTime = (timeline.currentTime - clip.startTime) + (clip.sourceStart || 0);
             vid.currentTime = Math.max(0, sourceTime);
         }
-    }, [timeline.isPlaying, timeline.currentTime, timeline.clips.length, timeline.clips]);
+    }, [timeline.isPlaying, timeline.currentTime, activeClip]);
 
     return (
         <div className="edit-mode" onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
@@ -581,10 +597,11 @@ export const EditMode = () => {
                         <>
                         {/* Simple video preview — no canvas for basic edit */}
                         <div className="edit-preview-video">
-                            {timeline.clips[0]?.sourceUrl ? (
+                            {activeClip?.sourceUrl ? (
                                 <video
+                                    key={activeClip.id}
                                     ref={previewVideoRef}
-                                    src={timeline.clips[0].sourceUrl}
+                                    src={activeClip.sourceUrl}
                                     style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 8, background: '#000' }}
                                 />
                             ) : (
@@ -689,6 +706,7 @@ export const EditMode = () => {
                     onRemoveTrack={timeline.removeTrack}
                     onToggleMute={timeline.toggleTrackMute}
                     onToggleLock={timeline.toggleTrackLock}
+                    onDropExternal={handleDropExternal}
                 />
             </div>
 
