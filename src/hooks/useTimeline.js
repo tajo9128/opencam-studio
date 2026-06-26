@@ -259,6 +259,8 @@ export const useTimeline = () => {
         moveClip: store.moveClip,
         resizeClip: store.resizeClip,
         splitAtPlayhead: store.splitAtPlayhead,
+        duplicateClip: store.duplicateClip,
+        setClipSpeed: store.setClipSpeed,
         addTrack: store.addTrack,
         removeTrack: store.removeTrack,
         toggleTrackMute: store.toggleTrackMute,
@@ -269,6 +271,7 @@ export const useTimeline = () => {
         redo: store.redo,
 
         play, pause, stop,
+        seek: store.seek,
         renderFrame,
         getOrCreateVideo,
         videoCacheRef,

@@ -177,6 +177,44 @@ export const useTimelineStore = create((set, get) => ({
         });
     },
 
+    duplicateClip: (id) => {
+        const state = get();
+        const clip = state.clips.find(c => c.id === id);
+        if (!clip) return;
+        const { id: _omitId, ...clipWithoutId } = clip;
+        const newClip = createClip({
+            ...clipWithoutId,
+            startTime: clip.startTime + clip.duration,
+        });
+        const newClips = [...state.clips, newClip];
+        set({
+            clips: newClips,
+            duration: computeDuration(newClips),
+            undoStack: [...state.undoStack.slice(-MAX_UNDO + 1), { clips: JSON.parse(JSON.stringify(state.clips)), tracks: JSON.parse(JSON.stringify(state.tracks)) }],
+            redoStack: [],
+            canUndo: true,
+            canRedo: false,
+        });
+    },
+
+    setClipSpeed: (id, speed) => {
+        const state = get();
+        const newClips = state.clips.map(c => {
+            if (c.id !== id) return c;
+            const oldSpeed = c.speed || 1;
+            const newDuration = c.duration * (oldSpeed / speed);
+            return { ...c, speed, duration: newDuration };
+        });
+        set({
+            clips: newClips,
+            duration: computeDuration(newClips),
+            undoStack: [...state.undoStack.slice(-MAX_UNDO + 1), { clips: JSON.parse(JSON.stringify(state.clips)), tracks: JSON.parse(JSON.stringify(state.tracks)) }],
+            redoStack: [],
+            canUndo: true,
+            canRedo: false,
+        });
+    },
+
     setAudioOffset: (clipId, offset) => {
         set(state => ({
             clips: state.clips.map(c => c.id === clipId ? { ...c, audioOffset: offset } : c),
@@ -323,6 +361,10 @@ export const useTimelineStore = create((set, get) => ({
     },
 
     setCurrentTime: (time) => set({ currentTime: Math.max(0, time) }),
+    seek: (time) => {
+        const dur = get().duration;
+        set({ currentTime: Math.max(0, Math.min(time, dur)) });
+    },
     setDuration: (d) => set({ duration: d }),
     setSelectedClipId: (id) => set({ selectedClipId: id }),
     setZoom: (z) => set({ zoom: typeof z === 'function' ? z(get().zoom) : z }),
