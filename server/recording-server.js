@@ -175,12 +175,17 @@ const server = http.createServer((req, res) => {
             // Delete raw WebM to save space
             try { fs.unlinkSync(webmPath); } catch {}
 
+            const cursorUrl = session.cursorTelemetryPath
+                ? `/api/video/${sessionId}/cursor`
+                : null;
+
             // Send status to WebSocket if connected
             if (session.ws && session.ws.readyState === WebSocket.OPEN) {
                 session.ws.send(JSON.stringify({
                     type: 'ready',
                     videoUrl: `/api/video/${sessionId}`,
                     proxyUrl: `/api/video/${sessionId}/proxy`,
+                    cursorUrl,
                     duration: 0,
                 }));
             }
@@ -195,6 +200,7 @@ const server = http.createServer((req, res) => {
                 sessionId,
                 videoUrl: `/api/video/${sessionId}`,
                 proxyUrl: `/api/video/${sessionId}/proxy`,
+                cursorUrl,
             }));
         }).catch(err => {
             log('error', `Session ${sessionId} conversion failed:`, err.message);
@@ -258,6 +264,25 @@ const server = http.createServer((req, res) => {
             return;
         }
         serveFile(res, filePath, 'video/mp4');
+        return;
+    }
+
+    // GET /api/video/{id}/cursor
+    const cursorMatch = pathname.match(/^\/api\/video\/([a-f0-9]+)\/cursor$/);
+    if (cursorMatch && req.method === 'GET') {
+        const id = cursorMatch[1];
+        const session = sessions.get(id);
+        if (session && session.cursorTelemetryPath && fs.existsSync(session.cursorTelemetryPath)) {
+            const data = fs.readFileSync(session.cursorTelemetryPath, 'utf-8');
+            res.writeHead(200, {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+            });
+            res.end(data);
+            return;
+        }
+        res.writeHead(404, { 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify({ error: 'No cursor telemetry found' }));
         return;
     }
 
@@ -419,7 +444,11 @@ wss.on('connection', (ws, req) => {
         } else {
             try {
                 const msg = JSON.parse(data.toString());
-                if (msg.type === 'stop') {
+                if (msg.type === 'cursor-telemetry') {
+                    const telemetryPath = path.join(RECORDINGS_DIR, `${sessionId}_cursor.json`);
+                    fs.writeFileSync(telemetryPath, msg.data);
+                    session.cursorTelemetryPath = telemetryPath;
+                } else if (msg.type === 'stop') {
                     // Client requesting stop
                     session.state = 'finalizing';
                     session.tempStream.end();
@@ -454,11 +483,15 @@ wss.on('connection', (ws, req) => {
                         try { fs.unlinkSync(webmPath); } catch {}
 
                         if (ws.readyState === WebSocket.OPEN) {
+                            const cursorUrl = session.cursorTelemetryPath
+                                ? `/api/video/${sessionId}/cursor`
+                                : null;
                             ws.send(JSON.stringify({
                                 type: 'ready',
                                 sessionId,
                                 videoUrl: `/api/video/${sessionId}`,
                                 proxyUrl: `/api/video/${sessionId}/proxy`,
+                                cursorUrl,
                             }));
                         }
 
