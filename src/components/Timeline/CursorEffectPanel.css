@@ -1,0 +1,57 @@
+.cursor-effect-panel {
+    padding: 12px;
+    background: #1a1a2e;
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-size: 13px;
+}
+
+.cursor-effect-panel__title {
+    margin: 0 0 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #f8fafc;
+}
+
+.cursor-effect-panel__option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    cursor: pointer;
+}
+
+.cursor-effect-panel__option input[type="checkbox"] {
+    accent-color: #8b5cf6;
+}
+
+.cursor-effect-panel__slider {
+    margin: 8px 0;
+}
+
+.cursor-effect-panel__slider label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.cursor-effect-panel__slider input[type="range"] {
+    width: 100%;
+    accent-color: #8b5cf6;
+}
+
+.cursor-effect-panel__color {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0;
+}
+
+.cursor-effect-panel__color input[type="color"] {
+    width: 32px;
+    height: 24px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
