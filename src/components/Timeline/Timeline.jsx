@@ -11,6 +11,7 @@ const TIME_SCALE_BASE = 80;
 export const Timeline = ({
     onDropExternal,
     clipThumbnails = {},
+    onPlayPause,
 }) => {
     const containerRef = useRef(null);
     const scrollRef = useRef(null);
@@ -350,11 +351,7 @@ export const Timeline = ({
             <div className="tl-transport" role="toolbar" aria-label="Timeline transport controls">
                 <button className="tl-transport-btn" onClick={() => useTimelineStore.getState().setCurrentTime(0)} title="Stop" aria-label="Stop playback">Stop</button>
                 <button className="tl-transport-btn tl-transport-play"
-                    onClick={() => {
-                        // Play/pause is wired from parent via useTimeline
-                        const s = useTimelineStore.getState();
-                        // This will be handled by the parent EditMode
-                    }}
+                    onClick={() => onPlayPause?.()}
                     aria-label={isPlaying ? 'Pause playback' : 'Play'}>
                     {isPlaying ? 'Pause' : 'Play'}
                 </button>

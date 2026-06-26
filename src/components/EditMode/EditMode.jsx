@@ -10,7 +10,8 @@ import { useZoom } from '../../hooks/useZoom';
 import { useAI } from '../../hooks/useAI';
 import { useClipBin } from '../../hooks/useClipBin';
 import { useOverlays } from '../../hooks/useOverlays';
-import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
+import { useTimelineKeyboard } from '../../hooks/useTimelineKeyboard';
+import { useTimelineStore } from '../../store/timelineStore';
 import { ClipBin } from './ClipBin';
 import { ClipMonitor } from './ClipMonitor';
 import { Toast } from '../Notifications/Toast';
@@ -62,6 +63,14 @@ export const EditMode = () => {
                 label: 'Recording',
                 type: 'video',
             });
+            tl.addClip(4, {
+                sourceUrl: serverVideoUrl,
+                duration: 30,
+                sourceEnd: 30,
+                label: 'Recording (audio)',
+                type: 'audio',
+                color: '#10b981',
+            });
         } else {
             const rec = recordingStore.get();
             if (rec?.url && rec.blob) {
@@ -71,6 +80,14 @@ export const EditMode = () => {
                     sourceEnd: 10,
                     label: rec.name || 'Recording',
                     type: 'video',
+                });
+                tl.addClip(4, {
+                    sourceUrl: rec.url,
+                    duration: 10,
+                    sourceEnd: 10,
+                    label: (rec.name || 'Recording') + ' (audio)',
+                    type: 'audio',
+                    color: '#10b981',
                 });
                 recordingStore.clear();
             }
@@ -148,6 +165,7 @@ export const EditMode = () => {
     // Sync activeFilters from selected clip when selection changes
     useEffect(() => {
         setActiveFilters(selectedClip?.filters || []);
+        if (selectedClip) setRightPanelOpen(true);
     }, [timeline.selectedClipId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Wrapper that persists filter changes to the clip
@@ -205,13 +223,22 @@ export const EditMode = () => {
                         .then(r => r.json())
                         .then(result => {
                             if (!result.clipId) throw new Error('Upload failed');
-                            // Use proxy URL for editing (small 480p file), source URL kept for final render
+                            const proxyUrl = result.proxyUrl || `/api/videos/${result.clipId}`;
+                            const baseName = (result.originalName || file.name).replace(/\.[^/.]+$/, '');
                             timeline.addClip(0, {
-                                sourceUrl: result.proxyUrl || `/api/videos/${result.clipId}`,
+                                sourceUrl: proxyUrl,
                                 duration: result.duration || 10,
                                 sourceEnd: result.duration || 10,
-                                label: (result.originalName || file.name).replace(/\.[^/.]+$/, ''),
+                                label: baseName,
                                 type: 'video',
+                            });
+                            timeline.addClip(4, {
+                                sourceUrl: proxyUrl,
+                                duration: result.duration || 10,
+                                sourceEnd: result.duration || 10,
+                                label: baseName + ' (audio)',
+                                type: 'audio',
+                                color: '#10b981',
                             });
                             setUploadQueue(prev => prev.map(f => f.id === fileId ? { ...f, status: 'done' } : f));
                             setTimeout(() => setUploadQueue(prev => prev.filter(f => f.id !== fileId)), 2000);
@@ -222,22 +249,35 @@ export const EditMode = () => {
                     return;
                 }
                 // Small file — use blob URL (fast, local)
-                // Remove oldest clips if > 3 to prevent OOM
-                const toRemove = timeline.clips.length >= 3 ? timeline.clips.slice(0, timeline.clips.length - 2) : [];
-                toRemove.forEach(c => {
-                    if (c.sourceUrl && c.sourceUrl.startsWith('blob:')) URL.revokeObjectURL(c.sourceUrl);
-                    timeline.removeClip(c.id);
-                });
                 const url = URL.createObjectURL(file);
                 const video = document.createElement('video');
                 video.preload = 'metadata';
                 video.onloadedmetadata = () => {
                     const dur = video.duration || 10;
-                    timeline.addClip(0, {
-                        sourceUrl: url, duration: dur, sourceEnd: dur,
-                        label: file.name.replace(/\.[^/.]+$/, ''),
-                        type: file.type?.startsWith('audio') ? 'audio' : 'video',
-                    });
+                    const baseName = file.name.replace(/\.[^/.]+$/, '');
+                    const isAudio = file.type?.startsWith('audio');
+                    if (isAudio) {
+                        // Audio-only → goes on Audio track
+                        timeline.addClip(4, {
+                            sourceUrl: url, duration: dur, sourceEnd: dur,
+                            label: baseName,
+                            type: 'audio',
+                            color: '#10b981',
+                        });
+                    } else {
+                        // Video → linked video clip on track 0 + audio clip on Audio track
+                        timeline.addClip(0, {
+                            sourceUrl: url, duration: dur, sourceEnd: dur,
+                            label: baseName,
+                            type: 'video',
+                        });
+                        timeline.addClip(4, {
+                            sourceUrl: url, duration: dur, sourceEnd: dur,
+                            label: baseName + ' (audio)',
+                            type: 'audio',
+                            color: '#10b981',
+                        });
+                    }
                     video.removeAttribute('src'); video.load();
                     setUploadQueue(prev => prev.map(f => f.id === fileId ? { ...f, status: 'done' } : f));
                     setTimeout(() => setUploadQueue(prev => prev.filter(f => f.id !== fileId)), 2000);
@@ -561,37 +601,42 @@ export const EditMode = () => {
         if (command) handleAICommand(command);
     }, [ai, handleAICommand]);
 
-    // Keyboard shortcuts
-    useKeyboardShortcuts({
-        ' ': () => timeline.isPlaying ? timeline.pause() : timeline.play(),
-        's': () => timeline.splitAtPlayhead(),
-        'delete': () => { if (timeline.selectedClipId) timeline.removeClip(timeline.selectedClipId); },
-        'ctrl+z': () => timeline.undo(),
-        'ctrl+shift+z': () => timeline.redo(),
-        '=': () => timeline.setZoom?.(Math.min((timeline.zoom || 1) + 0.25, 4)),
-        '-': () => timeline.setZoom?.(Math.max((timeline.zoom || 1) - 0.25, 0.25)),
-        'arrowleft': () => timeline.setCurrentTime?.(Math.max(0, (timeline.currentTime || 0) - 1)),
-        'arrowright': () => timeline.setCurrentTime?.((timeline.currentTime || 0) + 1),
-        'ctrl+d': () => { if (timeline.selectedClipId) timeline.duplicateClip(timeline.selectedClipId); },
+    // Wire keyboard shortcuts via dedicated hook
+    useTimelineKeyboard({
+        play: timeline.play,
+        pause: timeline.pause,
+        isPlaying: timeline.isPlaying,
     });
 
-    // Sync preview video with timeline playback
+    // Sync preview video with timeline playback + honor track mute
+    const activeTrack = activeClip ? timeline.tracks[activeClip.trackIndex] : null;
     useEffect(() => {
         const vid = previewVideoRef.current;
         if (!vid || timeline.clips.length === 0 || !activeClip) return;
-
         const sourceTime = (timeline.currentTime - activeClip.startTime) + (activeClip.sourceStart || 0);
+
+        // Track mute → preview muted (audio still in source, just silence)
+        vid.muted = activeTrack?.muted ? true : false;
 
         if (timeline.isPlaying) {
             if (Math.abs(vid.currentTime - sourceTime) > 0.3) {
                 vid.currentTime = Math.max(0, sourceTime);
             }
-            if (vid.paused) vid.play().catch(() => {});
+            if (vid.paused) {
+                vid.play().then(() => {
+                    // Some browsers require muted to unlock autoplay; unmute right after
+                    if (vid.muted && !activeTrack?.muted) vid.muted = false;
+                }).catch(() => {
+                    // Autoplay blocked — try muted autoplay then unmute
+                    vid.muted = true;
+                    vid.play().catch(() => {});
+                });
+            }
         } else {
             if (!vid.paused) vid.pause();
             vid.currentTime = Math.max(0, sourceTime);
         }
-    }, [timeline.isPlaying, timeline.currentTime, activeClip]);
+    }, [timeline.isPlaying, timeline.currentTime, activeClip, activeTrack]);
 
     return (
         <div className="edit-mode" onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
@@ -659,6 +704,7 @@ export const EditMode = () => {
                     onAddKeyframe={timeline.addKeyframe}
                     onSetTransition={handleSetTransition}
                     onAddTextOverlay={handleAddTextOverlay}
+                    allClips={timeline.clips}
                 />
             </div>
 
@@ -710,7 +756,6 @@ export const EditMode = () => {
                     currentTime={timeline.currentTime}
                     duration={timeline.duration}
                     selectedClipId={timeline.selectedClipId}
-                    isPlaying={timeline.isPlaying}
                     zoom={timeline.zoom}
                     onSelectClip={timeline.setSelectedClipId}
                     onSeek={timeline.seek}
@@ -720,8 +765,7 @@ export const EditMode = () => {
                     onSpeed={timeline.setClipSpeed}
                     onMove={timeline.moveClip}
                     onResize={timeline.resizeClip}
-                    onPlay={timeline.play}
-                    onPause={timeline.pause}
+                    onPlayPause={() => timeline.isPlaying ? timeline.pause() : timeline.play()}
                     onStop={timeline.stop}
                     onZoomChange={timeline.setZoom}
                     onAddTrack={timeline.addTrack}
