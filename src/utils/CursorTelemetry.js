@@ -61,7 +61,7 @@ export class CursorTelemetry {
         return result;
     }
 
-    smoothPath(tension = 0.5) {
+    smoothPath(_tension = 0.5) {
         if (this.events.length < 3) return [...this.events];
 
         const pts = this.events;
