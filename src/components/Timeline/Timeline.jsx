@@ -4,6 +4,10 @@ import { Playhead } from './Playhead';
 import { MarkerLayer } from './MarkerLayer';
 import { KeyframeCanvas } from './KeyframeCanvas';
 import { AudioEnvelope } from './AudioEnvelope';
+import { ZoomPanTrack } from './ZoomPanTrack';
+import { CursorTrack } from './CursorTrack';
+import { AnnotationsTrack } from './AnnotationsTrack';
+import { AnimationsTrack } from './AnimationsTrack';
 import { useTimelineStore } from '../../store/timelineStore';
 import './Timeline.css';
 
@@ -20,7 +24,7 @@ export const Timeline = ({
     const [dragging, setDragging] = useState(null);
     const [contextMenu, setContextMenu] = useState(null);
     const [speedSlider, setSpeedSlider] = useState(null);
-    const [selectedKeyframeParam, setSelectedKeyframeParam] = useState(null);
+    const [selectedKeyframeParam] = useState(null);
 
     const clips = useTimelineStore(s => s.clips);
     const tracks = useTimelineStore(s => s.tracks);
@@ -31,6 +35,10 @@ export const Timeline = ({
     const zoom = useTimelineStore(s => s.zoom);
     const markers = useTimelineStore(s => s.markers);
     const magneticMode = useTimelineStore(s => s.magneticMode);
+    const zoomPanRegions = useTimelineStore(s => s.zoomPanRegions);
+    const cursorEvents = useTimelineStore(s => s.cursorEvents);
+    const annotations = useTimelineStore(s => s.annotations);
+    const animations = useTimelineStore(s => s.animations);
 
     const timeScale = TIME_SCALE_BASE * zoom;
     const totalWidth = Math.max(duration * timeScale + 200, 800);
@@ -318,6 +326,54 @@ export const Timeline = ({
                     </div>
                     <div className="tl-clips" style={{ width: totalWidth }}>
                         {clips.map(renderClip)}
+                    </div>
+
+                    {/* Screencast tracks */}
+                    <div className="tl-screencast-tracks" style={{ width: totalWidth }}>
+                        {tracks.filter(t => t.type === 'zoom-pan').map(track => (
+                            <ZoomPanTrack
+                                key={track.id}
+                                regions={zoomPanRegions}
+                                zoom={zoom}
+                                trackHeight={TRACK_HEIGHT}
+                                onAddRegion={(region) => useTimelineStore.getState().addZoomPanRegion(region)}
+                                onUpdateRegion={(id, updates) => useTimelineStore.getState().updateZoomPanRegion(id, updates)}
+                                onRemoveRegion={(id) => useTimelineStore.getState().removeZoomPanRegion(id)}
+                            />
+                        ))}
+                        {tracks.filter(t => t.type === 'cursor').map(track => (
+                            <CursorTrack
+                                key={track.id}
+                                events={cursorEvents}
+                                zoom={zoom}
+                                trackHeight={TRACK_HEIGHT}
+                                onAddEvent={(event) => useTimelineStore.getState().addCursorEvent(event)}
+                                onUpdateEvent={(id, updates) => useTimelineStore.getState().updateCursorEvent(id, updates)}
+                                onRemoveEvent={(id) => useTimelineStore.getState().removeCursorEvent(id)}
+                            />
+                        ))}
+                        {tracks.filter(t => t.type === 'annotations').map(track => (
+                            <AnnotationsTrack
+                                key={track.id}
+                                annotations={annotations}
+                                zoom={zoom}
+                                trackHeight={TRACK_HEIGHT}
+                                onAddAnnotation={(ann) => useTimelineStore.getState().addAnnotation(ann)}
+                                onUpdateAnnotation={(id, updates) => useTimelineStore.getState().updateAnnotation(id, updates)}
+                                onRemoveAnnotation={(id) => useTimelineStore.getState().removeAnnotation(id)}
+                            />
+                        ))}
+                        {tracks.filter(t => t.type === 'animations').map(track => (
+                            <AnimationsTrack
+                                key={track.id}
+                                animations={animations}
+                                zoom={zoom}
+                                trackHeight={TRACK_HEIGHT}
+                                onAddAnimation={(anim) => useTimelineStore.getState().addAnimation(anim)}
+                                onUpdateAnimation={(id, updates) => useTimelineStore.getState().updateAnimation(id, updates)}
+                                onRemoveAnimation={(id) => useTimelineStore.getState().removeAnimation(id)}
+                            />
+                        ))}
                     </div>
 
                     <MarkerLayer
