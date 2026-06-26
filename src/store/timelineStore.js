@@ -397,8 +397,8 @@ export const useTimelineStore = create((set, get) => ({
         if (state.undoStack.length === 0 || state._isUndoRedo) return;
         const snapshot = state.undoStack[state.undoStack.length - 1];
         const newUndo = state.undoStack.slice(0, -1);
+        set({ _isUndoRedo: true });
         set({
-            _isUndoRedo: true,
             clips: snapshot.clips,
             tracks: snapshot.tracks,
             duration: computeDuration(snapshot.clips),
@@ -415,8 +415,8 @@ export const useTimelineStore = create((set, get) => ({
         if (state.redoStack.length === 0 || state._isUndoRedo) return;
         const snapshot = state.redoStack[state.redoStack.length - 1];
         const newRedo = state.redoStack.slice(0, -1);
+        set({ _isUndoRedo: true });
         set({
-            _isUndoRedo: true,
             clips: snapshot.clips,
             tracks: snapshot.tracks,
             duration: computeDuration(snapshot.clips),

@@ -11,12 +11,12 @@ const MARKER_COLORS = [
 export const MarkerLayer = ({
     markers,
     zoom,
-    currentTime,
-    onAddMarker,
+    currentTime: _currentTime,
+    onAddMarker: _onAddMarker,
     onRemoveMarker,
     onUpdateMarker,
     onMoveMarker,
-    onSeek,
+    onSeek: _onSeek,
 }) => {
     const [editingMarker, setEditingMarker] = useState(null);
     const [draggingMarker, setDraggingMarker] = useState(null);

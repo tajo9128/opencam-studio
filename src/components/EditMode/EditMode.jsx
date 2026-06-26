@@ -11,7 +11,6 @@ import { useAI } from '../../hooks/useAI';
 import { useClipBin } from '../../hooks/useClipBin';
 import { useOverlays } from '../../hooks/useOverlays';
 import { useTimelineKeyboard } from '../../hooks/useTimelineKeyboard';
-import { useTimelineStore } from '../../store/timelineStore';
 import { ClipBin } from './ClipBin';
 import { ClipMonitor } from './ClipMonitor';
 import { Toast } from '../Notifications/Toast';

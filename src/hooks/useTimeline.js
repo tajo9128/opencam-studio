@@ -74,6 +74,27 @@ export const useTimeline = () => {
         useTimelineStore.setState({ currentTime: 0 });
     }, [pause]);
 
+    const getKeyframedValueLocal = useCallback((clip, paramKey, time) => {
+        const kfs = clip.keyframes?.[paramKey];
+        if (!kfs || kfs.length === 0) return undefined;
+        if (kfs.length === 1) return kfs[0].value;
+        const relTime = time - clip.startTime;
+        let prev = null, next = null;
+        for (const kf of kfs) {
+            if (kf.time <= relTime) prev = kf;
+            if (kf.time >= relTime && !next) next = kf;
+        }
+        if (!prev) return next.value;
+        if (!next) return prev.value;
+        if (prev.time === next.time) return prev.value;
+        const t = (relTime - prev.time) / (next.time - prev.time);
+        let factor = t;
+        if (next.interpolation === 'ease-in') factor = t * t;
+        else if (next.interpolation === 'ease-out') factor = 1 - (1 - t) * (1 - t);
+        else if (next.interpolation === 'ease-in-out') factor = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        return prev.value + (next.value - prev.value) * factor;
+    }, []);
+
     const renderFrame = useCallback((ctx, canvas, time) => {
         const { clips, tracks } = useTimelineStore.getState();
 
@@ -216,28 +237,7 @@ export const useTimeline = () => {
                 }
             }
         }
-    }, [getOrCreateVideo]);
-
-    const getKeyframedValueLocal = useCallback((clip, paramKey, time) => {
-        const kfs = clip.keyframes?.[paramKey];
-        if (!kfs || kfs.length === 0) return undefined;
-        if (kfs.length === 1) return kfs[0].value;
-        const relTime = time - clip.startTime;
-        let prev = null, next = null;
-        for (const kf of kfs) {
-            if (kf.time <= relTime) prev = kf;
-            if (kf.time >= relTime && !next) next = kf;
-        }
-        if (!prev) return next.value;
-        if (!next) return prev.value;
-        if (prev.time === next.time) return prev.value;
-        const t = (relTime - prev.time) / (next.time - prev.time);
-        let factor = t;
-        if (next.interpolation === 'ease-in') factor = t * t;
-        else if (next.interpolation === 'ease-out') factor = 1 - (1 - t) * (1 - t);
-        else if (next.interpolation === 'ease-in-out') factor = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-        return prev.value + (next.value - prev.value) * factor;
-    }, []);
+    }, [getOrCreateVideo, getKeyframedValueLocal]);
 
     return {
         clips: store.clips,

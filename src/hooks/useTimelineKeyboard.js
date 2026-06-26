@@ -17,7 +17,7 @@ export const useTimelineKeyboard = ({
         const store = useTimelineStore.getState();
         const { selectedClipId, splitAtPlayhead, removeClip, trimStartToPlayhead,
                 trimEndToPlayhead, addMarker, undo, redo, setCurrentTime,
-                currentTime, duration, zoom, setZoom } = store;
+                currentTime, duration, setZoom } = store;
 
         // Space: play/pause
         if (e.code === 'Space') {
