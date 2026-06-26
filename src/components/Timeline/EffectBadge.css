@@ -1,0 +1,28 @@
+.tl-effect-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    pointer-events: auto;
+    cursor: pointer;
+    z-index: 6;
+}
+.tl-effect-badge-fx {
+    background: var(--primary, #8b5cf6);
+    color: #fff;
+    font-size: 8px;
+    font-weight: bold;
+    padding: 1px 3px;
+    border-radius: 2px;
+    line-height: 1;
+}
+.tl-effect-badge-count {
+    background: var(--bg-secondary, #1e1e2e);
+    color: var(--text-secondary, #aaa);
+    font-size: 8px;
+    padding: 1px 3px;
+    border-radius: 2px;
+    line-height: 1;
+}
