@@ -134,9 +134,9 @@ export const useYouTube = () => {
         try {
             const videoMetadata = {
                 snippet: {
-                    title: metadata.title || 'BioDockify Studio Recording',
-                    description: metadata.description || 'Recorded with BioDockify Studio',
-                    tags: metadata.tags || ['screen recording', 'biodockifystudio'],
+                    title: metadata.title || 'OpenCam Studio Recording',
+                    description: metadata.description || 'Recorded with OpenCam Studio',
+                    tags: metadata.tags || ['screen recording', 'opencam-studio'],
                     categoryId: metadata.categoryId || '22',
                 },
                 status: {

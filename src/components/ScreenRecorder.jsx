@@ -510,7 +510,7 @@ const ScreenRecorder = () => {
             <header className="header-section" style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ visibility: 'hidden' }}>Spacer</div>
                 <div style={{ textAlign: 'center' }}>
-                    <h1>BioDockify Studio</h1>
+                    <h1>OpenCam Studio</h1>
                     <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Record your screen with webcam overlay</p>
                 </div>
                 <button className="btn btn-outline" onClick={() => setIsHistoryOpen(!isHistoryOpen)}>

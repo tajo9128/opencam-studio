@@ -372,7 +372,7 @@ git commit -m "feat: add AudioEnvelope rubber band for volume keyframing"
 
 - [ ] **Step 1: Read current Timeline.jsx**
 
-Read `F:\screenstudio\src\components\Timeline\Timeline.jsx` to understand current structure.
+Read the current `src/components/Timeline/Timeline.jsx` to understand current structure.
 
 - [ ] **Step 2: Add imports**
 

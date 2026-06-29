@@ -11,7 +11,7 @@ export class ErrorBoundary extends React.Component {
     }
 
     componentDidCatch(error, errorInfo) {
-        console.error('BioDockify Studio ErrorBoundary caught:', error, errorInfo);
+        console.error('OpenCam Studio ErrorBoundary caught:', error, errorInfo);
     }
 
     handleReset = () => {

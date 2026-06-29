@@ -1,4 +1,4 @@
-# BioDockify Studio - Hybrid Recorder Implementation Summary
+# OpenCam Studio - Hybrid Recorder Implementation Summary
 
 ## ✅ All Features Working
 

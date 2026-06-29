@@ -1,7 +1,7 @@
 # Task 1: Create Zustand Store - Implementation Report
 
 ## What Was Implemented
-Created a Zustand store at `src/store/timelineStore.js` for the BioDockify Studio video editor timeline. The store manages:
+Created a Zustand store at `src/store/timelineStore.js` for the OpenCam Studio video editor timeline. The store manages:
 
 - **Clips**: Array of video/audio clips with properties (id, trackIndex, startTime, duration, sourceUrl, speed, filters, transitions, keyframes, etc.)
 - **Tracks**: 5 default tracks (Video 1, Video 2, Screen, Webcam, Audio) with mute/lock/visibility controls

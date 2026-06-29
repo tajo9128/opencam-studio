@@ -27,9 +27,9 @@ export const YouTubeUploadModal = ({
     isUploading, uploadProgress,
     onGenerateAI, isGeneratingAI,
 }) => {
-    const [title, setTitle] = useState('BioDockify Studio Recording');
-    const [description, setDescription] = useState('Recorded with BioDockify Studio - Free Screen Recorder');
-    const [tags, setTags] = useState('screen recording, biodockifystudio, tutorial');
+    const [title, setTitle] = useState('OpenCam Studio Recording');
+    const [description, setDescription] = useState('Recorded with OpenCam Studio - Free Screen Recorder');
+    const [tags, setTags] = useState('screen recording, opencam-studio, tutorial');
     const [privacy, setPrivacy] = useState('unlisted');
     const [categoryId, setCategoryId] = useState('22');
     const [result, setResult] = useState(null);
@@ -100,7 +100,7 @@ export const YouTubeUploadModal = ({
                         </div>
                     ) : !isAuthenticated ? (
                         <div className="yt-auth-section">
-                            <p>Connect your YouTube account to upload recordings directly from BioDockify Studio.</p>
+                                <p>Connect your YouTube account to upload recordings directly from OpenCam Studio.</p>
                             <p className="yt-auth-note">
                                 A popup will open for you to sign in to Google and authorize YouTube access.
                             </p>

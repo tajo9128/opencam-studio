@@ -16,7 +16,7 @@ const LandingPage = () => {
     useEffect(() => {
         const fetchStars = async () => {
             try {
-                const response = await fetch('https://api.github.com/repos/tajo9128/biodockifystudio');
+                const response = await fetch('https://api.github.com/repos/tajo9128/opencam-studio');
                 if (response.ok) {
                     const data = await response.json();
                     setStars(data.stargazers_count);
@@ -38,8 +38,8 @@ const LandingPage = () => {
 
     const faqs = [
         {
-            q: "Is BioDockify Studio really free?",
-            a: "Yes, 100%. BioDockify Studio is a fully open-source project with no paywalls, no 'Pro' plans, and no hidden subscriptions. Everything from 2K recording to webcam overlays is available for free."
+            q: "Is OpenCam Studio really free?",
+            a: "Yes, 100%. OpenCam Studio is a fully open-source project with no paywalls, no 'Pro' plans, and no hidden subscriptions. Everything from 2K recording to webcam overlays is available for free."
         },
         {
             q: "Is there a recording limit?",
@@ -47,7 +47,7 @@ const LandingPage = () => {
         },
         {
             q: "Do I need to install any software?",
-            a: "None. BioDockify Studio works directly in your web browser using modern web APIs. No downloads, no browser extensions - the most secure and instant recording experience possible."
+            a: "None. OpenCam Studio works directly in your web browser using modern web APIs. No downloads, no browser extensions - the most secure and instant recording experience possible."
         },
         {
             q: "What video qualities and formats are supported?",
@@ -55,14 +55,14 @@ const LandingPage = () => {
         },
         {
             q: "How does the local privacy work?",
-            a: "Unlike Loom or Tella, BioDockify Studio saves your videos directly to your local workspace using the File System Access API. Your videos never leave your machine unless you choose to download them."
+            a: "Unlike Loom or Tella, OpenCam Studio saves your videos directly to your local workspace using the File System Access API. Your videos never leave your machine unless you choose to download them."
         }
     ];
 
     return (
         <div className="landing-container">
             <SEO
-                title="BioDockify Studio | Best Free 2K Screen Recorder with Camera Bubble"
+                title="OpenCam Studio | Best Free 2K Screen Recorder with Camera Bubble"
                 description="Professional free screen recorder with webcam bubble, 2K quality, and no recording limits. Open source alternative to Loom and Tella."
             />
             <div className="mesh-gradient"></div>
@@ -70,7 +70,7 @@ const LandingPage = () => {
             <nav className="landing-nav">
                 <div className="nav-logo">
                     <div className="logo-icon" style={{ color: 'white' }}>S</div>
-                    <span>BioDockify Studio</span>
+                    <span>OpenCam Studio</span>
                 </div>
                 <div className="nav-links">
                     <a href="#features">Features</a>
@@ -98,13 +98,13 @@ const LandingPage = () => {
                         <button className="btn btn-primary btn-glow btn-xl" onClick={() => navigate('/recorder')}>
                             Launch Studio - It's Free
                         </button>
-                        <button className="btn btn-outline btn-xl btn-with-icon" onClick={() => window.open('https://github.com/tajo9128/biodockifystudio', '_blank')}>
+                        <button className="btn btn-outline btn-xl btn-with-icon" onClick={() => window.open('https://github.com/tajo9128/opencam-studio', '_blank')}>
                             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.041-1.416-4.041-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>
                             <span>Open Source</span>
                         </button>
                     </div>
                     <div className="hero-social">
-                        <div className="github-stars-badge" onClick={() => window.open('https://github.com/tajo9128/biodockifystudio', '_blank')}>
+                        <div className="github-stars-badge" onClick={() => window.open('https://github.com/tajo9128/opencam-studio', '_blank')}>
                             <div className="gh-avatars">
                                 <span className="gh-icon">
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.041-1.416-4.041-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>
@@ -123,7 +123,7 @@ const LandingPage = () => {
                     <div className="floating-ui recorder-mockup">
                         <div className="mockup-header">
                             <div className="mac-controls"><span></span><span></span><span></span></div>
-                            <div className="mockup-title">biodockifystudio.app</div>
+                            <div className="mockup-title">opencam-studio.app</div>
                         </div>
                         <div className="mockup-body">
                             <div className="mockup-canvas">
@@ -183,7 +183,7 @@ const LandingPage = () => {
             <section id="comparison" className="comparison-section">
                 <div className="section-header">
                     <h2 className="section-title">Why pay when you can <span className="text-gradient">get it for free?</span></h2>
-                    <p className="section-subtitle">BioDockify Studio is the best Loom and Tella alternative with matching quality and zero costs.</p>
+                    <p className="section-subtitle">OpenCam Studio is the best Loom and Tella alternative with matching quality and zero costs.</p>
                 </div>
 
                 <div className="comparison-table-wrapper glass">
@@ -192,7 +192,7 @@ const LandingPage = () => {
                             <tr>
                                 <th>Feature</th>
                                 <th>Loom / Tella</th>
-                                <th className="highlight">BioDockify Studio</th>
+                                <th className="highlight">OpenCam Studio</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -262,7 +262,7 @@ const LandingPage = () => {
             <footer className="studio-footer">
                 <div className="footer-content">
                     <div className="footer-logo" style={{ color: 'var(--text-main)', background: 'var(--glass)' }}>S</div>
-                    <p>BioDockify Studio - Free & Open Source</p>
+                    <p>OpenCam Studio - Free & Open Source</p>
                 </div>
             </footer>
         </div>

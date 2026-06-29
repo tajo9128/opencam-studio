@@ -132,7 +132,7 @@ export const GuestPage = () => {
         return (
             <div className="guest-page">
                 <div className="guest-card">
-                    <h1>BioDockify Studio</h1>
+                    <h1>OpenCam Studio</h1>
                     <p className="guest-error">Invalid room link</p>
                 </div>
             </div>
@@ -142,7 +142,7 @@ export const GuestPage = () => {
     return (
         <div className="guest-page">
             <div className="guest-card">
-                <h1>BioDockify Studio</h1>
+                <h1>OpenCam Studio</h1>
                 <p className="guest-subtitle">Join as a guest</p>
 
                 {!joined ? (

@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="public/favicon.svg" width="80" alt="BioDockify Studio Logo">
+  <img src="public/favicon.svg" width="80" alt="OpenCam Studio Logo">
 </p>
 
-<h1 align="center">BioDockify Studio</h1>
+<h1 align="center">OpenCam Studio</h1>
 
 <p align="center">
   <strong>Record. Edit. Stream. Export. &mdash; All in your browser.</strong>
@@ -13,16 +13,16 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/tajo9128/biodockifystudio/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
+  <a href="https://github.com/tajo9128/opencam-studio/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
   <img src="https://img.shields.io/badge/platform-Chrome%20%7C%20Edge%20%7C%20Firefox-brightgreen" alt="Platforms">
   <img src="https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white" alt="Docker Ready">
 </p>
 
 ---
 
-## What is BioDockify Studio?
+## What is OpenCam Studio?
 
-BioDockify Studio is a **browser-based screen recorder, video editor, and live streamer** &mdash; no downloads, no installs, no accounts required. It runs entirely in your browser, or as a Docker container on your server.
+OpenCam Studio is a **browser-based screen recorder, video editor, and live streamer** &mdash; no downloads, no installs, no accounts required. It runs entirely in your browser, or as a Docker container on your server.
 
 | | Feature | Details |
 |---|---|---|
@@ -42,7 +42,7 @@ BioDockify Studio is a **browser-based screen recorder, video editor, and live s
 
 ```bash
 # Pull and run
-docker run -p 3000:80 tajo9128/biodockifystudio:v1.0.0
+docker run -p 3000:80 tajo9128/opencam-studio:v1.0.0
 
 # Open http://localhost:3000
 ```
@@ -51,8 +51,8 @@ docker run -p 3000:80 tajo9128/biodockifystudio:v1.0.0
 
 ```bash
 # Clone the repo
-git clone https://github.com/tajo9128/biodockifystudio.git
-cd biodockifystudio
+git clone https://github.com/tajo9128/opencam-studio.git
+cd opencam-studio
 
 # Start everything (app + RTMP relay + recording server + project server)
 docker compose -f docker-compose.full.yml up -d
@@ -63,8 +63,8 @@ docker compose -f docker-compose.full.yml up -d
 ### Option 3: Development
 
 ```bash
-git clone https://github.com/tajo9128/biodockifystudio.git
-cd biodockifystudio
+git clone https://github.com/tajo9128/opencam-studio.git
+cd opencam-studio
 npm install
 
 # Start the project server (needed for MLT editing)
@@ -114,10 +114,10 @@ Handles the **video editing** pipeline using MLT framework + melt CLI:
 
 | Image | Description | Tag |
 |---|---|---|
-| `tajo9128/biodockifystudio` | Frontend (Nginx) | `v1.0.0` |
-| `tajo9128/biodockifystudio-relay` | RTMP relay server | `v1.0.0` |
-| `biodockify-recording:latest` | Recording server (FFmpeg + Node) | Build locally |
-| `biodockify-project:latest` | MLT + Node.js project server | Build locally |
+| `tajo9128/opencam-studio` | Frontend (Nginx) | `v1.0.0` |
+| `tajo9128/opencam-studio-relay` | RTMP relay server | `v1.0.0` |
+| `opencam-recording:latest` | Recording server (FFmpeg + Node) | Build locally |
+| `opencam-project:latest` | MLT + Node.js project server | Build locally |
 
 ### Docker Compose Files
 
@@ -302,8 +302,8 @@ Tier 3: Paid API        -->  OpenAI / Anthropic / any OpenAI-compatible API
 
 ```bash
 # Fork, clone, install
-git clone https://github.com/YOUR_USERNAME/biodockifystudio.git
-cd biodockifystudio
+git clone https://github.com/tajo9128/opencam-studio.git
+cd opencam-studio
 npm install
 cd server && npm install && cd ..
 

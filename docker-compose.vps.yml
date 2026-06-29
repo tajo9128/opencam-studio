@@ -1,8 +1,8 @@
-# Docker VPS — BioDockify Studio + Ollama in same compose stack
+# Docker VPS — OpenCam Studio + Ollama in same compose stack
 # Usage: docker compose -f docker-compose.vps.yml up -d
 # For GPU support: install nvidia-container-toolkit on host first
 services:
-  biodockifystudio:
+  opencam-studio:
     build: .
     ports:
       - "3000:80"

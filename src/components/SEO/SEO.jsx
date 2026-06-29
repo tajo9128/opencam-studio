@@ -10,7 +10,7 @@ import { useLocation } from 'react-router-dom';
  */
 const SEO = ({ title, description, canonicalPath }) => {
     const location = useLocation();
-    const siteUrl = 'https://biodockifystudio.app';
+    const siteUrl = 'https://opencam-studio.app';
     const currentPath = canonicalPath || location.pathname;
 
     // Ensure no trailing slash and consistent domain prefix

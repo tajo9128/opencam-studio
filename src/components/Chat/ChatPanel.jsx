@@ -32,7 +32,7 @@ export const ChatPanel = ({
             <div className="chat-header">
                 <div className="chat-header-left">
                     <span className="chat-icon">AI</span>
-                    <span className="chat-title">BioDockify Studio AI</span>
+                    <span className="chat-title">OpenCam Studio AI</span>
                     <span className={`chat-status ${ollamaConnected ? 'connected' : apiKey ? 'connected' : 'local'}`}>
                         {ollamaConnected ? `Ollama: ${ollamaModel || 'ready'}` : apiKey ? 'API' : 'Local'}
                     </span>

@@ -71,8 +71,8 @@ CMD ["node", "project-server.js"]
 
 **Step 2: Verify Dockerfile builds**
 
-Run: `docker build -f server/Dockerfile.project -t biodockify-project:latest .`
-Expected: Build succeeds, `docker run --rm biodockify-project:latest melt --version` prints MLT version
+Run: `docker build -f server/Dockerfile.project -t opencam-project:latest .`
+Expected: Build succeeds, `docker run --rm opencam-project:latest melt --version` prints MLT version
 
 **Step 3: Commit**
 
@@ -966,7 +966,7 @@ export default function ProjectManager() {
 
     return (
         <div className="project-manager">
-            <h1>BioDockify Studio</h1>
+            <h1>OpenCam Studio</h1>
             <div className="project-actions">
                 <input
                     type="text"

@@ -1,5 +1,5 @@
 services:
-  biodockifystudio:
+  opencam-studio:
     build:
       context: .
       dockerfile: server/Dockerfile.allinone

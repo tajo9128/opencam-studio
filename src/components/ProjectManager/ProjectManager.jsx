@@ -47,7 +47,7 @@ export default function ProjectManager() {
     return (
         <div className="project-manager">
             <div className="pm-header">
-                <h1>BioDockify Studio</h1>
+                <h1>OpenCam Studio</h1>
                 <p className="pm-subtitle">Video editing projects</p>
             </div>
 

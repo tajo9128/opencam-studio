@@ -228,7 +228,7 @@ export const SettingsPage = () => {
                         <div className="settings-about">
                             <div className="settings-about-logo">S</div>
                             <div>
-                                <h3>BioDockify Studio</h3>
+                                <h3>OpenCam Studio</h3>
                                 <p>Free & Open Source Screen Recorder + Video Editor</p>
                                 <p className="settings-about-ver">v1.0.0 &mdash; Recording + Editing + AI + YouTube</p>
                             </div>

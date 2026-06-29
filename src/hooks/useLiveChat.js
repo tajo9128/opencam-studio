@@ -39,7 +39,7 @@ export const useLiveChat = () => {
 
         ws.onopen = () => {
             ws.send(`PASS oauth:${oauthToken || 'oauth:anonymous'}`);
-            ws.send(`NICK biodockifystudio`);
+                ws.send(`NICK opencamstudio`);
             ws.send(`JOIN #${channelName.toLowerCase()}`);
             setConnected(true);
             setPlatform('twitch');

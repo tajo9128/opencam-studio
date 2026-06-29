@@ -853,12 +853,12 @@ export const EditMode = () => {
                     <button className="btn btn-outline" style={{ fontSize: '0.65rem', padding: '0.25rem 0.5rem' }}
                         onClick={() => {
                             const project = { clips: timeline.clips, tracks: timeline.tracks, savedAt: Date.now() };
-                            localStorage.setItem('biodockifystudio_project', JSON.stringify(project));
+                            localStorage.setItem('opencam_studio_project', JSON.stringify(project));
                             showToast('Saved', 'Project saved to browser storage', 'success');
                         }}>Save</button>
                     <button className="btn btn-outline" style={{ fontSize: '0.65rem', padding: '0.25rem 0.5rem' }}
                         onClick={() => {
-                            const saved = localStorage.getItem('biodockifystudio_project');
+                            const saved = localStorage.getItem('opencam_studio_project');
                             if (!saved) { showToast('Error', 'No saved project found.', 'error'); return; }
                             const project = JSON.parse(saved);
                             project.clips.forEach(c => timeline.addClip(c.trackIndex, c));

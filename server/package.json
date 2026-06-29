@@ -1,7 +1,7 @@
 {
-  "name": "screenstudio-rtmp-relay",
+  "name": "opencam-studio-rtmp-relay",
   "version": "1.0.0",
-  "description": "WebSocket to RTMP relay for ScreenStudio streaming",
+  "description": "WebSocket to RTMP relay for OpenCam Studio streaming",
   "main": "rtmp-relay.js",
   "scripts": {
     "start": "node rtmp-relay.js"

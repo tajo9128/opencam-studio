@@ -1,6 +1,6 @@
 {
-    "name": "BioDockify Studio",
-    "short_name": "BioDockify Studio",
+    "name": "OpenCam Studio",
+    "short_name": "OpenCam Studio",
     "description": "Free, private screen recorder with webcam overlay and AI editing",
     "start_url": "/",
     "display": "standalone",

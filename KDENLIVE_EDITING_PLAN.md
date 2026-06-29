@@ -1,4 +1,4 @@
-# BioDockify Studio Editing Improvement Plan — Based on Kdenlive Analysis
+# OpenCam Studio Editing Improvement Plan — Based on Kdenlive Analysis
 
 ## Kdenlive: What It Has (232 video effects, 242 audio effects)
 
@@ -22,9 +22,9 @@ Audio, Channels, CMT, EQ/Filters, LADSPA, Modulators, Pitch/Time, Reverb/Delay, 
 
 ---
 
-## BioDockify Studio Current State vs Kdenlive
+## OpenCam Studio Current State vs Kdenlive
 
-| Feature Area | BioDockify Studio | Kdenlive | Gap |
+| Feature Area | OpenCam Studio | Kdenlive | Gap |
 |---|---|---|---|
 | **Filters** | 18 (brightness→crop) | 232 | Massive |
 | **Transitions** | 8 (crossfade, fades, wipes, slide, zoom) | 20+ | Moderate |
@@ -208,7 +208,7 @@ Phase 4 — Advanced (3-5 days)
 
 ## Total Kdenlive Features → Browser-Feasible
 
-| Category | Kdenlive Count | Browser-Feasible | Already in BioDockify Studio |
+| Category | Kdenlive Count | Browser-Feasible | Already in OpenCam Studio |
 |---|---|---|---|
 | Video filters | 232 | ~40 (canvas-based) | 18 |
 | Audio effects | 242 | ~15 (Web Audio API) | 4 |

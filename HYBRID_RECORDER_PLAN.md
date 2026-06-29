@@ -1,4 +1,4 @@
-# BioDockify Studio - Hybrid Recorder Feature Plan
+# OpenCam Studio - Hybrid Recorder Feature Plan
 
 ## Current State Analysis
 

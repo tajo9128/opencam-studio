@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from 'react';
 
-// Keyboard shortcuts handler for BioDockify Studio
+// Keyboard shortcuts handler for OpenCam Studio
 // scope: 'recording' | 'editing' | 'global'
 export const useKeyboardShortcuts = (shortcuts = {}, _scope = 'global') => {
     const handleKeyDown = useCallback((e) => {

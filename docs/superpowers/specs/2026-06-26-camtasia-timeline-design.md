@@ -1,7 +1,7 @@
 # Camtasia-Level Timeline — Design Spec
 
 ## Goal
-Make BioDockify Studio's timeline editing interface comparable to Camtasia's screencast-optimized NLE.
+Make OpenCam Studio's timeline editing interface comparable to Camtasia's screencast-optimized NLE.
 
 ## Architecture Decisions
 - **Rendering:** Keep DOM for clip blocks, add HTML5 Canvas overlay for waveforms/keyframes/rubber-bands

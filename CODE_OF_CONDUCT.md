@@ -1,4 +1,4 @@
-# BioDockify Studio Code of Conduct
+# OpenCam Studio Code of Conduct
 
 ## Our Pledge
 

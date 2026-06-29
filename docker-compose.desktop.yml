@@ -1,8 +1,8 @@
-# Docker Desktop — BioDockify Studio (single container)
+# Docker Desktop — OpenCam Studio (single container)
 # Ollama must be installed separately on the host (ollama.com)
 # Usage: docker compose -f docker-compose.desktop.yml up -d
 services:
-  biodockifystudio:
+  opencam-studio:
     build:
       context: .
       dockerfile: server/Dockerfile.allinone
