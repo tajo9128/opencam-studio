@@ -1,6 +1,8 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { ToolSidebar } from '../Sidebar/ToolSidebar';
+import { EditorHeader } from './EditorHeader';
+import { OnboardingTour } from './OnboardingTour';
 import { RightPanel } from '../RightPanel/RightPanel';
 import { Timeline } from '../Timeline/Timeline';
 import { AIAssistant } from '../AI/AIAssistant';
@@ -49,6 +51,12 @@ export const EditMode = () => {
     const [activeFilters, setActiveFilters] = useState([]);
     const [aiOpen, setAiOpen] = useState(false);
     const [annotationEnabled, setAnnotationEnabled] = useState(false);
+    const [editorMode, setEditorMode] = useState(() => localStorage.getItem('opencam_editor_mode') || 'simple');
+    const [showTour, setShowTour] = useState(() => !localStorage.getItem('opencam_editor_tour_dismissed'));
+    const handleModeChange = useCallback((newMode) => {
+        setEditorMode(newMode);
+        localStorage.setItem('opencam_editor_mode', newMode);
+    }, []);
     const annotation = useAnnotation(canvasRef, annotationEnabled);
     const setCursorTelemetry = useTimelineStore(s => s.setCursorTelemetry);
     const cursorTelemetry = useTimelineStore(s => s.cursorTelemetry);
@@ -682,10 +690,11 @@ export const EditMode = () => {
 
     return (
         <div className="edit-mode" onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
+            <EditorHeader mode={editorMode} onModeChange={handleModeChange} projectName={project?.name} />
             {isDragOver && <div className="edit-drop-overlay"><span>Drop files here</span></div>}
 
             <div className="edit-mode-main">
-                <ToolSidebar activeTool={activeTool} onToolChange={handleToolChange} onUpload={triggerUpload} />
+                <ToolSidebar activeTool={activeTool} onToolChange={handleToolChange} onUpload={triggerUpload} mode={editorMode} />
 
                 <div className="edit-mode-canvas">
                     {projectLoading ? (
@@ -745,7 +754,7 @@ export const EditMode = () => {
                     )}
                 </div>
 
-                <TransitionLibrary />
+                {editorMode === 'advanced' && <TransitionLibrary />}
                 <RightPanel
                     isOpen={rightPanelOpen}
                     onClose={() => { setRightPanelOpen(false); setActiveTool(null); }}
@@ -758,8 +767,9 @@ export const EditMode = () => {
                     onSetTransition={handleSetTransition}
                     onAddTextOverlay={handleAddTextOverlay}
                     allClips={timeline.clips}
+                mode={editorMode}
                 />
-                {cursorTelemetry && <CursorEffectPanel />}
+                {editorMode === 'advanced' && cursorTelemetry && <CursorEffectPanel />}
             </div>
 
             {uploadQueue.length > 0 && (
@@ -827,6 +837,7 @@ export const EditMode = () => {
                     onToggleMute={timeline.toggleTrackMute}
                     onToggleLock={timeline.toggleTrackLock}
                     onDropExternal={handleDropExternal}
+                    mode={editorMode}
                 />
             </div>
 
@@ -889,6 +900,7 @@ export const EditMode = () => {
                 <RenderDialog projectId={projectId} onClose={() => setRenderOpen(false)} />
             )}
             <Toast toast={toast} onClose={() => setToast(null)} />
+            {showTour && <OnboardingTour onComplete={() => setShowTour(false)} />}
         </div>
     );
 };

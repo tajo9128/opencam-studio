@@ -1,0 +1,70 @@
+.onboarding-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.onboarding-card {
+    background: var(--nav-bg, #1a1a2e);
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.1));
+    border-radius: 12px;
+    padding: 24px 32px;
+    max-width: 400px;
+    text-align: center;
+}
+
+.onboarding-step {
+    font-size: 0.7rem;
+    color: var(--text-muted, #888);
+    margin-bottom: 8px;
+}
+
+.onboarding-title {
+    font-size: 1.1rem;
+    color: var(--text-main, #e0e0e0);
+    margin: 0 0 8px 0;
+}
+
+.onboarding-text {
+    font-size: 0.85rem;
+    color: var(--text-muted, #888);
+    margin: 0 0 20px 0;
+    line-height: 1.5;
+}
+
+.onboarding-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.onboarding-skip {
+    background: transparent;
+    border: none;
+    color: var(--text-muted, #888);
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 8px 12px;
+}
+
+.onboarding-skip:hover {
+    color: var(--text-main, #e0e0e0);
+}
+
+.onboarding-next {
+    background: var(--primary, #8b5cf6);
+    border: none;
+    color: white;
+    font-size: 0.85rem;
+    padding: 8px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.onboarding-next:hover {
+    opacity: 0.9;
+}

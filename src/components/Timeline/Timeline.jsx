@@ -21,6 +21,7 @@ export const Timeline = ({
     onDropExternal,
     clipThumbnails = {},
     onPlayPause,
+    mode = 'simple',
 }) => {
     const containerRef = useRef(null);
     const scrollRef = useRef(null);
@@ -474,6 +475,7 @@ export const Timeline = ({
                     onSpeed={(speed) => useTimelineStore.getState().updateClip(contextMenu.clip.id, { speed })}
                     onFilters={() => {}}
                     onKeyframes={() => {}}
+                    mode={mode}
                 />
             )}
 

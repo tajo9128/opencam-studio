@@ -1,0 +1,63 @@
+.editor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 40px;
+    padding: 0 12px;
+    background: var(--nav-bg, #1a1a2e);
+    border-bottom: 1px solid var(--glass-border, rgba(255,255,255,0.1));
+    flex-shrink: 0;
+}
+
+.editor-header-left {
+    display: flex;
+    align-items: center;
+}
+
+.editor-header-logo {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-main, #e0e0e0);
+}
+
+.editor-header-center {
+    display: flex;
+    align-items: center;
+}
+
+.editor-header-project {
+    font-size: 0.75rem;
+    color: var(--text-muted, #888);
+}
+
+.editor-header-right {
+    display: flex;
+    align-items: center;
+}
+
+.editor-mode-toggle {
+    display: flex;
+    background: var(--glass, rgba(255,255,255,0.05));
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.1));
+}
+
+.mode-btn {
+    padding: 4px 12px;
+    font-size: 0.7rem;
+    border: none;
+    background: transparent;
+    color: var(--text-muted, #888);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mode-btn:hover {
+    color: var(--text-main, #e0e0e0);
+}
+
+.mode-btn.active {
+    background: var(--primary, #8b5cf6);
+    color: white;
+}

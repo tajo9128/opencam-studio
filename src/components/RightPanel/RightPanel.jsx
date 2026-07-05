@@ -15,6 +15,7 @@ export const RightPanel = ({
     onSetTransition,
     onAddTextOverlay,
     allClips = [],
+    mode = 'simple',
 }) => {
     const markers = useTimelineStore(s => s.markers);
     const magneticMode = useTimelineStore(s => s.magneticMode);
@@ -149,7 +150,7 @@ export const RightPanel = ({
                     </div>
                 )}
 
-                {activeTool === 'keyframe' && selectedClip && (
+                {mode === 'advanced' && activeTool === 'keyframe' && selectedClip && (
                     <KeyframeEditor
                         clip={selectedClip}
                         onAddKeyframe={onAddKeyframe}
@@ -158,7 +159,7 @@ export const RightPanel = ({
                     />
                 )}
 
-                {activeTool === 'keyframe' && !selectedClip && (
+                {mode === 'advanced' && activeTool === 'keyframe' && !selectedClip && (
                     <div className="rp-section">
                         <p className="rp-empty">Select a clip first to manage keyframes.</p>
                     </div>
@@ -231,6 +232,7 @@ export const RightPanel = ({
                 )}
 
                 {/* Markers */}
+                {mode === 'advanced' && (
                 <div className="rp-section">
                     <h3>Markers</h3>
                     <div className="rp-markers-list">
@@ -248,8 +250,10 @@ export const RightPanel = ({
                         )}
                     </div>
                 </div>
+                )}
 
                 {/* Timeline Settings */}
+                {mode === 'advanced' && (
                 <div className="rp-section">
                     <h3>Timeline Settings</h3>
                     <label className="rp-toggle">
@@ -257,6 +261,7 @@ export const RightPanel = ({
                         <span>Magnetic Timeline (Auto-Ripple)</span>
                     </label>
                 </div>
+                )}
             </div>
         </aside>
     );
