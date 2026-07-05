@@ -48,7 +48,7 @@ OpenCam Studio is a **Docker Desktop screen recorder, video editor, and live str
 
 ```bash
 # Pull and run
-docker run -p 3000:80 tajo9128/opencam-studio:v1.0.0
+docker run -p 3000:80 tajo9128/opencam-studio:v1.0.1
 
 # Open http://localhost:3000
 ```
