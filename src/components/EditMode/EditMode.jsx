@@ -424,7 +424,26 @@ export const EditMode = () => {
         // Handle annotation toggle
         if (tool === 'draw') setAnnotationEnabled(true);
         else setAnnotationEnabled(false);
-    }, []);
+
+        // Handle cut tool - split at playhead and delete left part
+        if (tool === 'cut' && timeline.selectedClipId) {
+            const clip = timeline.clips.find(c => c.id === timeline.selectedClipId);
+            if (clip) {
+                const playheadTime = timeline.currentTime;
+                if (playheadTime > clip.startTime && playheadTime < clip.startTime + clip.duration) {
+                    timeline.splitAtPlayhead();
+                    // After split, the original clip becomes the left part
+                    setTimeout(() => {
+                        const leftClip = timeline.clips.find(c => c.id === timeline.selectedClipId);
+                        if (leftClip) {
+                            timeline.removeClip(leftClip.id);
+                        }
+                    }, 10);
+                }
+            }
+            setActiveTool(null); // Reset tool after cut
+        }
+    }, [timeline]);
 
     const handleAICommand = useCallback((command) => {
         if (!command || !command.action) return;

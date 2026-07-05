@@ -489,6 +489,23 @@ export const Timeline = ({
                 <span className="tl-transport-time tl-transport-duration" aria-label={`Duration: ${formatTime(duration)}`}>{formatTime(duration)}</span>
                 <div className="tl-transport-spacer" />
                 <button className="tl-transport-btn" onClick={() => useTimelineStore.getState().splitAtPlayhead()} disabled={!selectedClipId} title="Split (S)" aria-label="Split clip at playhead">Split</button>
+                <button className="tl-transport-btn" onClick={() => {
+                    if (!selectedClipId) return;
+                    const store = useTimelineStore.getState();
+                    const clip = store.clips.find(c => c.id === selectedClipId);
+                    if (!clip) return;
+                    // Cut: split at playhead and delete the part before playhead
+                    const playheadTime = store.currentTime;
+                    if (playheadTime > clip.startTime && playheadTime < clip.startTime + clip.duration) {
+                        // Split the clip at playhead
+                        store.splitAtPlayhead();
+                        // Delete the left part (before playhead)
+                        const leftClip = store.clips.find(c => c.id === selectedClipId);
+                        if (leftClip) {
+                            store.removeClip(leftClip.id);
+                        }
+                    }
+                }} disabled={!selectedClipId} title="Cut (X)" aria-label="Cut clip at playhead">Cut</button>
                 <button className="tl-transport-btn" onClick={() => selectedClipId && useTimelineStore.getState().removeClip(selectedClipId)} disabled={!selectedClipId} title="Delete (Del)" aria-label="Delete selected clip">Delete</button>
                 <div className="tl-transport-spacer" />
                 <button className="tl-transport-btn" onClick={() => useTimelineStore.getState().setZoom(z => Math.max(0.1, z * 0.8))} title="Zoom Out" aria-label="Zoom timeline out">-</button>
