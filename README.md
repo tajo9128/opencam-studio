@@ -48,7 +48,7 @@ OpenCam Studio is a **Docker Desktop screen recorder, video editor, and live str
 
 ```bash
 # Pull and run
-docker run -p 3000:80 tajo9128/opencam-studio:v1.0.1
+docker run -p 3000:80 tajo9128/opencam-studio:v1.1.0
 
 # Open http://localhost:3000
 ```
@@ -119,7 +119,7 @@ Handles the **video editing** pipeline using MLT framework + melt CLI:
 
 | Image | Description | Tag |
 |---|---|---|
-| `tajo9128/opencam-studio` | Frontend (Nginx) | `v1.0.0` |
+| `tajo9128/opencam-studio` | Frontend (Nginx) | `v1.1.0` |
 | `tajo9128/opencam-studio-relay` | RTMP relay server | `v1.0.0` |
 | `opencam-recording:latest` | Recording server (FFmpeg + Node) | Build locally |
 | `opencam-project:latest` | MLT + Node.js project server | Build locally |
@@ -175,11 +175,26 @@ When running inside Docker, recording can be delegated to the server:
 
 > Multi-track timeline with 33 filters and 13 transitions, plus server-backed rendering
 
+#### Simple & Advanced Modes
+
+The editor features **Simple** and **Advanced** modes to suit all skill levels:
+
+| Mode | Best For | What's Visible |
+|------|----------|----------------|
+| **Simple** (default) | YouTubers, Educators, beginners | 7 essential tools, tooltips, onboarding tour |
+| **Advanced** | Power users, video editors | All 9 tools, keyframes, J/L cuts, cursor effects, annotations |
+
+- Toggle between modes via the header bar switch
+- Mode preference persists across sessions
+- First-time users see a 4-step guided onboarding tour
+- Descriptive tooltips on every button explain what each tool does
+
 #### Browser Editing
 
 **Timeline:**
 - Unlimited tracks with mute/lock
 - Clip split (S key), move, resize, speed (0.25x&ndash;4x)
+- Razor cut tool for quick edits
 - Undo/redo (50-snapshot stack)
 - Keyboard: Space = play/pause, S = split, Delete = remove
 
