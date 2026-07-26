@@ -50,17 +50,17 @@ function serveFile(res, filePath, mimeType) {
                 'Content-Length': chunkSize,
                 'Content-Type': mimeType,
                 'Cache-Control': 'no-cache',
-                'Access-Control-Allow-Origin': '*',
-            });
-            stream.pipe(res);
-            stream.on('error', () => { if (!res.headersSent) { res.writeHead(500); res.end(); } });
-        } else {
-            res.writeHead(200, {
-                'Content-Length': fileSize,
-                'Content-Type': mimeType,
-                'Accept-Ranges': 'bytes',
-                'Cache-Control': 'no-cache',
-                'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Origin': res.req?.headers?.origin || 'http://localhost:3000',
+        });
+        stream.pipe(res);
+        stream.on('error', () => { if (!res.headersSent) { res.writeHead(500); res.end(); } });
+    } else {
+        res.writeHead(200, {
+            'Content-Length': fileSize,
+            'Content-Type': mimeType,
+            'Accept-Ranges': 'bytes',
+            'Cache-Control': 'no-cache',
+            'Access-Control-Allow-Origin': res.req?.headers?.origin || 'http://localhost:3000',
             });
             fs.createReadStream(filePath).pipe(res);
         }
@@ -88,7 +88,8 @@ function runFfmpeg(args) {
 const WebSocket = require('ws');
 
 const server = http.createServer((req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    const origin = req.headers.origin || 'http://localhost:3000';
+    res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -96,6 +97,17 @@ const server = http.createServer((req, res) => {
         res.writeHead(204);
         res.end();
         return;
+    }
+
+    // API key auth for non-WebSocket requests
+    const apiKey = process.env.OPENCAM_API_KEY;
+    if (apiKey && !req.headers.upgrade) {
+        const providedKey = req.headers['x-api-key'] || new URL(req.url, 'http://localhost').searchParams.get('apiKey');
+        if (!providedKey || providedKey !== apiKey) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Unauthorized' }));
+            return;
+        }
     }
 
     const url = new URL(req.url, `http://${req.headers.host}`);
@@ -276,12 +288,12 @@ const server = http.createServer((req, res) => {
             const data = fs.readFileSync(session.cursorTelemetryPath, 'utf-8');
             res.writeHead(200, {
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Origin': req.headers.origin || 'http://localhost:3000',
             });
             res.end(data);
             return;
         }
-        res.writeHead(404, { 'Access-Control-Allow-Origin': '*' });
+        res.writeHead(404, { 'Access-Control-Allow-Origin': req.headers.origin || 'http://localhost:3000' });
         res.end(JSON.stringify({ error: 'No cursor telemetry found' }));
         return;
     }
@@ -290,7 +302,18 @@ const server = http.createServer((req, res) => {
     // POST /api/edit/trim
     if (pathname === '/api/edit/trim' && req.method === 'POST') {
         let body = '';
-        req.on('data', c => body += c);
+        const MAX_BODY_SIZE = 10 * 1024 * 1024; // 10MB
+        let bodySize = 0;
+        req.on('data', c => {
+            bodySize += c.length;
+            if (bodySize > MAX_BODY_SIZE) {
+                res.writeHead(413, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Request body too large' }));
+                req.destroy();
+                return;
+            }
+            body += c;
+        });
         req.on('end', () => {
             try {
                 const { sourceId, start, end } = JSON.parse(body);
@@ -323,7 +346,18 @@ const server = http.createServer((req, res) => {
     // POST /api/edit/render
     if (pathname === '/api/edit/render' && req.method === 'POST') {
         let body = '';
-        req.on('data', c => body += c);
+        const MAX_BODY_SIZE = 10 * 1024 * 1024; // 10MB
+        let bodySize = 0;
+        req.on('data', c => {
+            bodySize += c.length;
+            if (bodySize > MAX_BODY_SIZE) {
+                res.writeHead(413, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Request body too large' }));
+                req.destroy();
+                return;
+            }
+            body += c;
+        });
         req.on('end', () => {
             try {
                 const { sourceId, edl } = JSON.parse(body);

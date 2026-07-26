@@ -5,20 +5,32 @@ const crypto = require('crypto');
 const PORT = process.env.SIGNALING_PORT || 8083;
 
 const server = http.createServer((req, res) => {
+    const origin = req.headers.origin || 'http://localhost:3000';
     if (req.url === '/health') {
-        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': origin });
         res.end(JSON.stringify({ status: 'ok', rooms: rooms.size }));
         return;
     }
     if (req.url === '/api/room' && req.method === 'POST') {
         let body = '';
-        req.on('data', chunk => body += chunk);
+        const MAX_BODY_SIZE = 10 * 1024 * 1024; // 10MB
+        let bodySize = 0;
+        req.on('data', chunk => {
+            bodySize += chunk.length;
+            if (bodySize > MAX_BODY_SIZE) {
+                res.writeHead(413, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Request body too large' }));
+                req.destroy();
+                return;
+            }
+            body += chunk;
+        });
         req.on('end', () => {
             try {
                 const { hostId } = JSON.parse(body);
                 const roomId = crypto.randomBytes(8).toString('hex');
                 rooms.set(roomId, { hostId, guests: new Map() });
-                res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+                res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': origin });
                 res.end(JSON.stringify({ roomId, url: `/guest/${roomId}` }));
             } catch {
                 res.writeHead(400);

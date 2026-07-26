@@ -57,4 +57,8 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD wget -qO- http://localhost/health || exit 1
 
+RUN addgroup -S opencam && adduser -S opencam -G opencam
+RUN chown -R opencam:opencam /app /videos /proxies /projects /output /recordings
+USER opencam
+
 CMD ["/app/start.sh"]

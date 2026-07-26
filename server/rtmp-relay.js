@@ -7,8 +7,9 @@ const { spawn } = require('child_process');
 const PORT = process.env.PORT || 8080;
 
 const server = http.createServer((req, res) => {
+    const origin = req.headers.origin || 'http://localhost:3000';
     if (req.url === '/health') {
-        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': origin });
         res.end(JSON.stringify({ status: 'ok', activeStreams: wss.clients.size }));
         return;
     }

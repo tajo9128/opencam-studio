@@ -6,6 +6,18 @@ const { spawn } = require('child_process');
 const multer = require('multer');
 const { jsonToMlt } = require('./mlt-xml');
 const { JobQueue } = require('./job-queue');
+const { createRateLimiter } = require('./middleware/rateLimit');
+const { validateProjectBody, validateTimelineBody } = require('./middleware/validate');
+const { apiKeyAuth } = require('./middleware/auth');
+
+// Path traversal prevention
+function safePath(base, ...segments) {
+    const resolved = path.resolve(base, ...segments);
+    if (!resolved.startsWith(path.resolve(base))) {
+        return null;
+    }
+    return resolved;
+}
 
 const PORT = process.env.PORT || 8082;
 const VIDEOS_DIR = process.env.VIDEOS_DIR || path.join(__dirname, 'videos');
@@ -18,8 +30,14 @@ for (const dir of [VIDEOS_DIR, PROXIES_DIR, PROJECTS_DIR, OUTPUT_DIR]) {
 }
 
 const app = express();
-app.use(cors());
+const allowedOrigins = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:3000'];
+app.use(cors({
+    origin: allowedOrigins,
+    credentials: true
+}));
 app.use(express.json({ limit: '50mb' }));
+app.use(createRateLimiter({ windowMs: 60000, max: 200 }));
+app.use(apiKeyAuth);
 
 const upload = multer({
     dest: path.join(VIDEOS_DIR, '.uploads'),
@@ -29,7 +47,7 @@ const jobQueue = new JobQueue();
 
 // ---------- Project CRUD ----------
 
-app.post('/api/projects', (req, res) => {
+app.post('/api/projects', validateProjectBody, (req, res) => {
     const { name, width = 1920, height = 1080, fps = 30 } = req.body;
     const id = require('crypto').randomBytes(8).toString('hex');
     const projDir = path.join(PROJECTS_DIR, id);
@@ -46,13 +64,15 @@ app.post('/api/projects', (req, res) => {
 });
 
 app.get('/api/projects/:id', (req, res) => {
-    const filePath = path.join(PROJECTS_DIR, req.params.id, 'project.json');
+    const filePath = safePath(PROJECTS_DIR, req.params.id, 'project.json');
+    if (!filePath) return res.status(400).json({ error: 'Invalid path' });
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
     res.json(JSON.parse(fs.readFileSync(filePath, 'utf8')));
 });
 
-app.put('/api/projects/:id/timeline', (req, res) => {
-    const filePath = path.join(PROJECTS_DIR, req.params.id, 'project.json');
+app.put('/api/projects/:id/timeline', validateTimelineBody, (req, res) => {
+    const filePath = safePath(PROJECTS_DIR, req.params.id, 'project.json');
+    if (!filePath) return res.status(400).json({ error: 'Invalid path' });
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
     const project = JSON.parse(fs.readFileSync(filePath, 'utf8'));
     project.timeline = req.body;
@@ -74,7 +94,8 @@ app.get('/api/projects', (req, res) => {
 });
 
 app.delete('/api/projects/:id', (req, res) => {
-    const dir = path.join(PROJECTS_DIR, req.params.id);
+    const dir = safePath(PROJECTS_DIR, req.params.id);
+    if (!dir) return res.status(400).json({ error: 'Invalid path' });
     if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
     res.json({ ok: true });
 });
@@ -131,7 +152,8 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 // ---------- File Serving ----------
 
 app.get('/api/videos/:id', (req, res) => {
-    const filePath = path.join(PROXIES_DIR, req.params.id);
+    const filePath = safePath(PROXIES_DIR, req.params.id);
+    if (!filePath) return res.status(400).json({ error: 'Invalid path' });
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
     const mime = filePath.endsWith('.mp4') ? 'video/mp4' : 'video/webm';
     serveFile(req, res, filePath, mime);
@@ -160,7 +182,7 @@ function serveFile(req, res, filePath, mimeType) {
             'Accept-Ranges': 'bytes',
             'Content-Length': chunkSize,
             'Content-Type': mimeType,
-            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Origin': req.headers.origin || 'http://localhost:3000',
         });
         fs.createReadStream(filePath, { start, end }).pipe(res);
     } else {
@@ -169,7 +191,7 @@ function serveFile(req, res, filePath, mimeType) {
             'Content-Type': mimeType,
             'Accept-Ranges': 'bytes',
             'Cache-Control': 'no-cache',
-            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Origin': req.headers.origin || 'http://localhost:3000',
         });
         fs.createReadStream(filePath).pipe(res);
     }
@@ -185,11 +207,13 @@ app.post('/api/thumbnail', async (req, res) => {
         const clipId = sourceUrl.match(/\/api\/videos\/([^/]+)/)?.[1];
         if (!clipId) return res.status(400).json({ error: 'Invalid sourceUrl' });
 
-        let sourcePath = path.join(VIDEOS_DIR, clipId + '.mp4');
+        let sourcePath = safePath(VIDEOS_DIR, clipId + '.mp4');
+        if (!sourcePath) return res.status(400).json({ error: 'Invalid path' });
         if (!fs.existsSync(sourcePath)) {
             const files = fs.readdirSync(VIDEOS_DIR).filter(f => f.startsWith(clipId));
             if (files.length === 0) return res.status(404).json({ error: 'Source not found' });
-            sourcePath = path.join(VIDEOS_DIR, files[0]);
+            sourcePath = safePath(VIDEOS_DIR, files[0]);
+            if (!sourcePath) return res.status(400).json({ error: 'Invalid path' });
         }
 
         const thumbId = require('crypto').randomBytes(6).toString('hex');
@@ -211,7 +235,8 @@ app.post('/api/thumbnail', async (req, res) => {
 });
 
 app.get('/api/thumbnails/:name', (req, res) => {
-    const filePath = path.join(PROXIES_DIR, req.params.name);
+    const filePath = safePath(PROXIES_DIR, req.params.name);
+    if (!filePath) return res.status(400).json({ error: 'Invalid path' });
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
     res.setHeader('Content-Type', 'image/jpeg');
     res.setHeader('Cache-Control', 'public, max-age=86400');
@@ -221,7 +246,8 @@ app.get('/api/thumbnails/:name', (req, res) => {
 // ---------- MLT Export ----------
 
 app.get('/api/projects/:id/export-mlt', (req, res) => {
-    const filePath = path.join(PROJECTS_DIR, req.params.id, 'project.json');
+    const filePath = safePath(PROJECTS_DIR, req.params.id, 'project.json');
+    if (!filePath) return res.status(400).json({ error: 'Invalid path' });
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
     const project = JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
@@ -239,8 +265,8 @@ app.get('/api/projects/:id/export-mlt', (req, res) => {
 // ---------- Render Queue ----------
 
 function loadProject(id) {
-    const filePath = path.join(PROJECTS_DIR, id, 'project.json');
-    if (!fs.existsSync(filePath)) return null;
+    const filePath = safePath(PROJECTS_DIR, id, 'project.json');
+    if (!filePath || !fs.existsSync(filePath)) return null;
     const project = JSON.parse(fs.readFileSync(filePath, 'utf8'));
     const clips = {};
     for (const clip of (project.clips || [])) {
@@ -335,10 +361,29 @@ function getMediaDuration(filePath) {
     });
 }
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`[project-server] Running on port ${PORT}`);
     console.log(`  VIDEOS_DIR: ${VIDEOS_DIR}`);
     console.log(`  PROXIES_DIR: ${PROXIES_DIR}`);
     console.log(`  PROJECTS_DIR: ${PROJECTS_DIR}`);
     console.log(`  OUTPUT_DIR: ${OUTPUT_DIR}`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully...');
+    server.close(() => {
+        console.log('Server closed');
+        process.exit(0);
+    });
+    // Force close after 10s
+    setTimeout(() => {
+        console.log('Forced shutdown after timeout');
+        process.exit(1);
+    }, 10000);
+});
+
+process.on('SIGINT', () => {
+    console.log('SIGINT received, shutting down...');
+    server.close(() => process.exit(0));
 });
