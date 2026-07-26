@@ -251,7 +251,14 @@ export const EditMode = () => {
                     const formData = new FormData();
                     formData.append('file', file);
                     fetch('/api/upload', { method: 'POST', body: formData })
-                        .then(r => r.json())
+                        .then(r => {
+                            if (!r.ok) {
+                                return r.json().catch(() => ({})).then(err => {
+                                    throw new Error(err.error || `Upload failed: ${r.status} ${r.statusText}`);
+                                });
+                            }
+                            return r.json();
+                        })
                         .then(result => {
                             if (!result.clipId) throw new Error('Upload failed');
                             const proxyUrl = result.proxyUrl || `/api/videos/${result.clipId}`;
@@ -274,8 +281,9 @@ export const EditMode = () => {
                             setUploadQueue(prev => prev.map(f => f.id === fileId ? { ...f, status: 'done' } : f));
                             setTimeout(() => setUploadQueue(prev => prev.filter(f => f.id !== fileId)), 2000);
                         })
-                        .catch(() => {
-                            setUploadQueue(prev => prev.map(f => f.id === fileId ? { ...f, status: 'error', error: 'server upload failed' } : f));
+                        .catch((err) => {
+                            const errorMsg = err.message || 'server upload failed';
+                            setUploadQueue(prev => prev.map(f => f.id === fileId ? { ...f, status: 'error', error: errorMsg } : f));
                         });
                     return;
                 }

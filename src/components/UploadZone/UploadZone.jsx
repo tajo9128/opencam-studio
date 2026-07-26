@@ -19,9 +19,12 @@ export default function UploadZone({ onClipUploaded }) {
             if (res.ok) {
                 const result = await res.json();
                 onClipUploaded(result);
+            } else {
+                const err = await res.json().catch(() => ({}));
+                console.error('Upload failed:', err.error || res.statusText);
             }
         } catch (e) {
-            console.error('Upload failed', e);
+            console.error('Upload failed:', e.message);
         }
         setUploading(false);
     }, [onClipUploaded]);
