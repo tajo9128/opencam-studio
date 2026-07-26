@@ -37,6 +37,32 @@ const SaveRecordingModal = ({ blob, mimeType, serverVideoUrl, serverProxyUrl, se
         }
     };
 
+    const handleSaveAndEdit = async () => {
+        if (!fileName.trim()) return;
+        const finalName = fileName.endsWith(extension) ? fileName : fileName + extension;
+        
+        // Save to PC first
+        try {
+            if (blob) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = finalName;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        } catch (err) {
+            console.error('Save failed:', err);
+        }
+        
+        // Then go to editor
+        if (hasServerUrl && onEditNow) {
+            onEditNow(blob, mimeType, { videoUrl: serverVideoUrl, proxyUrl: serverProxyUrl });
+        } else if (onEditNow) {
+            onEditNow(blob, mimeType);
+        }
+    };
+
     return (
         <div className="modal-overlay">
             <div className="modal-content" style={{ maxWidth: '450px', padding: '2.5rem' }}>
@@ -105,24 +131,32 @@ const SaveRecordingModal = ({ blob, mimeType, serverVideoUrl, serverProxyUrl, se
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
                             {onEditNow && (
                                 <button className="btn btn-primary"
                                     onClick={handleEditClick}
-                                    style={{ flex: 2, padding: '1rem', justifyContent: 'center', background: 'var(--primary)', borderColor: 'var(--primary)' }}>
+                                    style={{ width: '100%', padding: '1rem', justifyContent: 'center', background: 'var(--primary)', borderColor: 'var(--primary)' }}>
                                     ✂️ Edit Now
                                 </button>
                             )}
-                            <button className="btn btn-primary"
+                            {onEditNow && (
+                                <button className="btn btn-primary"
+                                    onClick={handleSaveAndEdit}
+                                    disabled={!fileName.trim()}
+                                    style={{ width: '100%', padding: '1rem', justifyContent: 'center', background: '#10b981', borderColor: '#10b981' }}>
+                                    💾 Save & Edit
+                                </button>
+                            )}
+                            <button className="btn btn-outline"
                                 onClick={handleConfirm}
                                 disabled={!fileName.trim()}
-                                style={{ flex: 1, padding: '1rem', justifyContent: 'center' }}>
-                                💾 Save
+                                style={{ width: '100%', padding: '1rem', justifyContent: 'center' }}>
+                                💾 Save Only
                             </button>
                         </div>
                     </>
                 )}
-                <div style={{ display: 'flex', gap: '1rem', width: '100%', marginTop: '0.5rem' }}>
+                <div style={{ display: 'flex', gap: '1rem', width: '100%', marginTop: '0.75rem' }}>
                     <button className="btn btn-outline" onClick={onDiscard}
                         style={{ flex: 1, padding: '0.75rem', justifyContent: 'center' }}>
                         {serverProcessing && !hasServerUrl ? 'Cancel' : 'Discard'}

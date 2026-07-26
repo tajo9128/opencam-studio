@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 
-const API_BASE = 'http://localhost:8081';
+const API_BASE = window.location.origin;
 
 export const useServerRecording = () => {
     const [sessionId, setSessionId] = useState(null);
@@ -19,9 +19,13 @@ export const useServerRecording = () => {
             const data = await res.json();
             setSessionId(data.sessionId);
 
-            const wsUrl = API_BASE.replace(/^http/, 'ws') + data.wsUrl;
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${window.location.host}${data.wsUrl}`;
             const socket = new WebSocket(wsUrl + `?session=${data.sessionId}`);
             wsRef.current = socket;
+
+            // Set binary type for large chunks
+            socket.binaryType = 'arraybuffer';
 
             return new Promise((resolve, reject) => {
                 socket.onopen = () => resolve(data.sessionId);
@@ -90,7 +94,7 @@ export const useServerRecording = () => {
                     resolveRef.current = null;
                 }
                 setIsProcessing(false);
-            }, 300000);
+            }, 600000); // 10 min timeout for large recordings
         });
     }, []);
 
