@@ -324,6 +324,48 @@
     flex: 1;
 }
 
+/* Floating clip action bar */
+.tl-clip-actions {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px 5px;
+    background: var(--nav-bg, #1a1a2e);
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.15));
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    z-index: 100;
+    pointer-events: auto;
+}
+
+.tl-clip-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted, #94a3b8);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    padding: 0;
+}
+
+.tl-clip-action-btn:hover {
+    background: var(--glass, rgba(255,255,255,0.1));
+    color: var(--text-main, #e2e8f0);
+}
+
+.tl-clip-action-divider {
+    width: 1px;
+    height: 16px;
+    background: var(--glass-border, rgba(255,255,255,0.1));
+    margin: 0 2px;
+}
+
 .tl-transport-btn {
     padding: 0.25rem 0.5rem;
     border: 1px solid var(--glass-border);

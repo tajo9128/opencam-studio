@@ -351,6 +351,49 @@ export const Timeline = ({
                     </div>
                     <div className="tl-clips" style={{ width: totalWidth }}>
                         {clips.map(renderClip)}
+                        {/* Floating action bar for selected clip */}
+                        {selectedClipId && (() => {
+                            const selectedClip = clips.find(c => c.id === selectedClipId);
+                            if (!selectedClip) return null;
+                            const cx = timeToX(selectedClip.startTime);
+                            const cw = timeToX(selectedClip.duration);
+                            const barX = Math.max(0, cx + cw / 2 - 100);
+                            const barY = selectedClip.trackIndex * TRACK_HEIGHT - 36;
+                            return (
+                                <div className="tl-clip-actions" style={{ left: barX, top: barY }}>
+                                    <button className="tl-clip-action-btn" title="Split at Playhead"
+                                        onClick={() => useTimelineStore.getState().splitAtPlayhead()}>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="2" x2="12" y2="22"/><polyline points="8 6 12 2 16 6"/><polyline points="8 18 12 22 16 18"/></svg>
+                                    </button>
+                                    <button className="tl-clip-action-btn" title="Delete"
+                                        onClick={() => useTimelineStore.getState().removeClip(selectedClipId)}>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                    </button>
+                                    <button className="tl-clip-action-btn" title="Duplicate"
+                                        onClick={() => {
+                                            const { id: _omit, ...rest } = selectedClip;
+                                            useTimelineStore.getState().addClip(selectedClip.trackIndex, {
+                                                ...rest,
+                                                startTime: selectedClip.startTime + selectedClip.duration,
+                                            });
+                                        }}>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                    </button>
+                                    <div className="tl-clip-action-divider" />
+                                    <button className="tl-clip-action-btn" title="Speed"
+                                        onClick={() => setSpeedSlider({ clipId: selectedClipId, x: cx, y: selectedClip.trackIndex * TRACK_HEIGHT })}>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+                                    </button>
+                                    <button className="tl-clip-action-btn" title="More (Right-click)"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleClipContextMenu(e, selectedClip);
+                                        }}>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+                                    </button>
+                                </div>
+                            );
+                        })()}
                     </div>
 
                     {/* Screencast tracks */}
