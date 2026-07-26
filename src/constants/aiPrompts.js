@@ -91,6 +91,10 @@ AUDIO:
 - {"action":"apply_audio_effect","effect":"highpass","params":{"frequency":80}}
 - {"action":"remove_audio_effect","effect":"reverb"}
 
+NOISE REDUCTION:
+- {"action":"apply_noise_reduction","strength":0.7} — apply noise reduction (0-1 strength)
+- {"action":"remove_noise_reduction"} — remove noise reduction from clip
+
 ANNOTATION:
 - {"action":"annotate","tool":"pen","color":"red"} — switch annotation tool
 - {"action":"annotate","tool":"arrow"}
@@ -273,6 +277,19 @@ export const COMMAND_PATTERNS = [
         patterns: [/^help$/i, /^what can you do$/i, /^commands$/i],
         handler: () => ({ action: 'help' })
     },
+    // Noise Reduction
+    {
+        patterns: [/(?:apply|enable|turn\s+on)\s+(?:noise\s*(?:reduction|removal|cancellation|suppression))/i, /(?:reduce|remove|cancel)\s+(?:background\s+)?noise/i],
+        handler: (match) => {
+            const strengthMatch = match[0].match(/(\d+(?:\.\d+)?)\s*%?/);
+            const strength = strengthMatch ? parseFloat(strengthMatch[1]) / (strengthMatch[0].includes('%') ? 100 : 1) : 0.7;
+            return { action: 'apply_noise_reduction', strength: Math.max(0, Math.min(1, strength)) };
+        }
+    },
+    {
+        patterns: [/(?:disable|turn\s+off|remove)\s+noise\s*(?:reduction|removal|cancellation|suppression)/i],
+        handler: () => ({ action: 'remove_noise_reduction' })
+    },
 ];
 
 export const HELP_MESSAGE = `Here's what I can do:
@@ -310,6 +327,8 @@ export const HELP_MESSAGE = `Here's what I can do:
 **Audio:**
 - "Set volume to 80" / "Mute" / "Unmute"
 - "Apply reverb" / "Apply noise gate"
+- "Reduce noise" / "Apply noise reduction"
+- "Remove noise reduction"
 
 **Text:**
 - "Add title Hello World for 5 seconds"

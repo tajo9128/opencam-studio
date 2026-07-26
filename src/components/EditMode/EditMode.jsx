@@ -633,6 +633,20 @@ export const EditMode = () => {
                 // Audio commands — volume control would need audio track integration
                 break;
 
+            // === NOISE REDUCTION ===
+            case 'apply_noise_reduction':
+                if (clipId) {
+                    timeline.updateClip(clipId, {
+                        noiseReduction: { strength: command.strength || 0.7, enabled: true }
+                    });
+                }
+                break;
+            case 'remove_noise_reduction':
+                if (clipId) {
+                    timeline.updateClip(clipId, { noiseReduction: null });
+                }
+                break;
+
             // === SUBTITLES ===
             case 'transcribe':
             case 'add_subtitle':

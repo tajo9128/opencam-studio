@@ -231,6 +231,53 @@ export const RightPanel = ({
                     </div>
                 )}
 
+                {/* Noise Reduction */}
+                {selectedClip && (
+                    <div className="rp-section">
+                        <h3>Noise Reduction</h3>
+                        <div className="rp-field">
+                            <label>
+                                Strength: {Math.round((selectedClip.noiseReduction?.strength || 0) * 100)}%
+                            </label>
+                            <input
+                                type="range"
+                                className="rp-slider"
+                                min={0}
+                                max={1}
+                                step={0.05}
+                                value={selectedClip.noiseReduction?.strength || 0}
+                                onChange={(e) => {
+                                    const strength = parseFloat(e.target.value);
+                                    const nr = strength > 0 ? { strength, enabled: true } : null;
+                                    useTimelineStore.getState().updateClip(selectedClip.id, { noiseReduction: nr });
+                                }}
+                            />
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                            {selectedClip.noiseReduction?.enabled ? (
+                                <button
+                                    className="btn btn-outline"
+                                    style={{ flex: 1, fontSize: '0.7rem' }}
+                                    onClick={() => useTimelineStore.getState().updateClip(selectedClip.id, { noiseReduction: null })}
+                                >
+                                    Remove
+                                </button>
+                            ) : (
+                                <button
+                                    className="btn btn-primary"
+                                    style={{ flex: 1, fontSize: '0.7rem' }}
+                                    onClick={() => useTimelineStore.getState().updateClip(selectedClip.id, { noiseReduction: { strength: 0.7, enabled: true } })}
+                                >
+                                    Apply
+                                </button>
+                            )}
+                        </div>
+                        <p className="rp-empty-hint" style={{ marginTop: '0.5rem' }}>
+                            Reduces background noise using FFT spectral subtraction. Adjust strength to balance noise removal vs. audio quality.
+                        </p>
+                    </div>
+                )}
+
                 {/* Markers */}
                 {mode === 'advanced' && (
                 <div className="rp-section">

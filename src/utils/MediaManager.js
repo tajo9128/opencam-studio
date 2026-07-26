@@ -29,8 +29,15 @@ class MediaManager {
         });
     }
 
-    async getAudioStream() {
-        return navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    async getAudioStream({ noiseSuppression = true, echoCancellation = true, autoGainControl = true } = {}) {
+        return navigator.mediaDevices.getUserMedia({
+            audio: {
+                noiseSuppression,
+                echoCancellation,
+                autoGainControl,
+            },
+            video: false
+        });
     }
 
     async getSystemAudio() {

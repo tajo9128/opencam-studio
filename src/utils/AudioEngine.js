@@ -131,6 +131,33 @@ export class AudioEngine {
             lastNode = gate;
         }
 
+        if (filters.noiseReduction) {
+            // Combined noise reduction: high-pass + low-pass + gate
+            const strength = filters.noiseReduction.strength || 0.7;
+            // High-pass to remove low-frequency rumble
+            const hp = offline.createBiquadFilter();
+            hp.type = 'highpass';
+            hp.frequency.value = 80 + strength * 120; // 80-200 Hz based on strength
+            hp.Q.value = 0.7;
+            lastNode.connect(hp);
+            lastNode = hp;
+            // Low-pass to remove high-frequency hiss
+            const lp = offline.createBiquadFilter();
+            lp.type = 'lowpass';
+            lp.frequency.value = 16000 - strength * 8000; // 16000-8000 Hz based on strength
+            lp.Q.value = 0.7;
+            lastNode.connect(lp);
+            lastNode = lp;
+            // Noise gate for silence
+            const gate = offline.createDynamicsCompressor();
+            gate.threshold.value = -40 + strength * 15; // -40 to -25 dB
+            gate.ratio.value = 20;
+            gate.attack.value = 0.003;
+            gate.release.value = 0.1;
+            lastNode.connect(gate);
+            lastNode = gate;
+        }
+
         if (filters.deEsser) {
             // Bandpass filter targeting sibilance (4-8kHz) + compressor
             const bandpass = offline.createBiquadFilter();
@@ -375,6 +402,10 @@ export class AudioEngine {
             {
                 id: 'limiter', name: 'Limiter', category: 'Dynamics',
                 params: { threshold: { min: -60, max: 0, default: -1, step: 1, label: 'Threshold (dB)' } }
+            },
+            {
+                id: 'noiseReduction', name: 'Noise Reduction', category: 'Dynamics',
+                params: { strength: { min: 0, max: 1, default: 0.7, step: 0.05, label: 'Strength' } }
             },
             {
                 id: 'noiseGate', name: 'Noise Gate', category: 'Dynamics',
