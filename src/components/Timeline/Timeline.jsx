@@ -16,6 +16,7 @@ import './Timeline.css';
 
 const TRACK_HEIGHT = 48;
 const TIME_SCALE_BASE = 80;
+const SNAP_THRESHOLD_PX = 7;
 
 export const Timeline = ({
     onDropExternal,
@@ -31,6 +32,9 @@ export const Timeline = ({
     const [contextMenu, setContextMenu] = useState(null);
     const [speedSlider, setSpeedSlider] = useState(null);
     const [selectedKeyframeParam] = useState(null);
+    const [snapGuide, setSnapGuide] = useState(null);
+    const [marquee, setMarquee] = useState(null);
+    const [selectedClipIds, setSelectedClipIds] = useState([]);
 
     const clips = useTimelineStore(s => s.clips);
     const tracks = useTimelineStore(s => s.tracks);
@@ -49,6 +53,35 @@ export const Timeline = ({
     const timeScale = TIME_SCALE_BASE * zoom;
     const totalWidth = Math.max(duration * timeScale + 200, 800);
 
+    // Snap system: collect snap points from other clips
+    const getSnapPoints = useCallback((excludeClipId) => {
+        const points = [0]; // Always snap to start
+        clips.forEach(c => {
+            if (c.id !== excludeClipId) {
+                points.push(c.startTime);
+                points.push(c.startTime + c.duration);
+            }
+        });
+        markers.forEach(m => points.push(m.time));
+        points.push(duration);
+        return points.sort((a, b) => a - b);
+    }, [clips, markers, duration]);
+
+    // Snap resolution: find nearest snap point within threshold
+    const resolveSnap = useCallback((time, snapPoints) => {
+        const thresholdTime = SNAP_THRESHOLD_PX / timeScale;
+        let best = null;
+        let bestDist = Infinity;
+        for (const sp of snapPoints) {
+            const dist = Math.abs(time - sp);
+            if (dist < thresholdTime && dist < bestDist) {
+                best = sp;
+                bestDist = dist;
+            }
+        }
+        return best;
+    }, [timeScale]);
+
     const timeToX = useCallback((t) => t * timeScale, [timeScale]);
     const xToTime = useCallback((x) => x / timeScale, [timeScale]);
 
@@ -61,6 +94,7 @@ export const Timeline = ({
     const handleTimelineClick = useCallback((e) => {
         if (dragging) return;
         if (contextMenu) { setContextMenu(null); return; }
+        if (marquee) return; // Don't process click during marquee
         const rect = scrollRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left + scrollRef.current.scrollLeft;
         const y = e.clientY - rect.top;
@@ -73,12 +107,26 @@ export const Timeline = ({
         });
 
         if (clickedClip) {
+            // Shift+click or Ctrl+click for multi-select
+            if (e.shiftKey || e.ctrlKey || e.metaKey) {
+                setSelectedClipIds(prev => {
+                    if (prev.includes(clickedClip.id)) {
+                        return prev.filter(id => id !== clickedClip.id);
+                    }
+                    return [...prev, clickedClip.id];
+                });
+            } else {
+                setSelectedClipIds([clickedClip.id]);
+            }
             useTimelineStore.getState().setSelectedClipId(clickedClip.id);
         } else {
+            // Start marquee selection on empty space
+            setSelectedClipIds([]);
             useTimelineStore.getState().setSelectedClipId(null);
             useTimelineStore.getState().setCurrentTime(Math.max(0, time));
+            setMarquee({ startX: x, startY: y, endX: x, endY: y });
         }
-    }, [clips, dragging, xToTime]);
+    }, [clips, dragging, xToTime, marquee]);
 
     const handleClipMouseDown = useCallback((e, clip, resizeSide) => {
         e.stopPropagation();
@@ -111,6 +159,52 @@ export const Timeline = ({
         setContextMenu({ x: e.clientX, y: e.clientY, clip });
     }, []);
 
+    // Marquee selection drag handler
+    useEffect(() => {
+        if (!marquee) return;
+
+        const handleMouseMove = (e) => {
+            const rect = scrollRef.current.getBoundingClientRect();
+            const x = e.clientX - rect.left + scrollRef.current.scrollLeft;
+            const y = e.clientY - rect.top;
+            setMarquee(prev => prev ? { ...prev, endX: x, endY: y } : null);
+        };
+
+        const handleMouseUp = () => {
+            // Find clips intersecting the marquee rectangle
+            if (marquee) {
+                const x1 = Math.min(marquee.startX, marquee.endX);
+                const x2 = Math.max(marquee.startX, marquee.endX);
+                const y1 = Math.min(marquee.startY, marquee.endY);
+                const y2 = Math.max(marquee.startY, marquee.endY);
+
+                const t1 = xToTime(x1);
+                const t2 = xToTime(x2);
+                const track1 = Math.floor(y1 / TRACK_HEIGHT);
+                const track2 = Math.floor(y2 / TRACK_HEIGHT);
+
+                const intersecting = clips.filter(c => {
+                    if (c.trackIndex < track1 || c.trackIndex > track2) return false;
+                    const clipEnd = c.startTime + c.duration;
+                    return clipEnd > t1 && c.startTime < t2;
+                });
+
+                if (intersecting.length > 0) {
+                    setSelectedClipIds(intersecting.map(c => c.id));
+                    useTimelineStore.getState().setSelectedClipId(intersecting[0].id);
+                }
+            }
+            setMarquee(null);
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [marquee, clips, xToTime]);
+
     useEffect(() => {
         if (!dragging) return;
 
@@ -119,7 +213,16 @@ export const Timeline = ({
             const dt = dx / timeScale;
 
             if (dragging.type === 'move') {
-                const newStart = Math.max(0, dragging.origStart + dt);
+                let newStart = Math.max(0, dragging.origStart + dt);
+                // Snap system
+                const snapPoints = getSnapPoints(dragging.clipId);
+                const snapped = resolveSnap(newStart, snapPoints);
+                if (snapped !== null) {
+                    newStart = snapped;
+                    setSnapGuide(snapped);
+                } else {
+                    setSnapGuide(null);
+                }
                 const container = scrollRef.current;
                 if (container) {
                     const rect = container.getBoundingClientRect();
@@ -128,15 +231,42 @@ export const Timeline = ({
                     useTimelineStore.getState().moveClip(dragging.clipId, newStart, newTrack);
                 }
             } else if (dragging.type === 'resize-left') {
-                const newDuration = Math.max(0.1, dragging.origDuration - dt);
+                let newDuration = Math.max(0.1, dragging.origDuration - dt);
+                const clip = clips.find(c => c.id === dragging.clipId);
+                if (clip) {
+                    const newStart = clip.startTime + (dragging.origDuration - newDuration);
+                    const snapPoints = getSnapPoints(dragging.clipId);
+                    const snapped = resolveSnap(newStart, snapPoints);
+                    if (snapped !== null) {
+                        newDuration = Math.max(0.1, clip.startTime + clip.duration - snapped);
+                        setSnapGuide(snapped);
+                    } else {
+                        setSnapGuide(null);
+                    }
+                }
                 useTimelineStore.getState().resizeClip(dragging.clipId, newDuration, true);
             } else if (dragging.type === 'resize-right') {
-                const newDuration = Math.max(0.1, dragging.origDuration + dt);
+                let newDuration = Math.max(0.1, dragging.origDuration + dt);
+                const clip = clips.find(c => c.id === dragging.clipId);
+                if (clip) {
+                    const endTime = clip.startTime + newDuration;
+                    const snapPoints = getSnapPoints(dragging.clipId);
+                    const snapped = resolveSnap(endTime, snapPoints);
+                    if (snapped !== null) {
+                        newDuration = Math.max(0.1, snapped - clip.startTime);
+                        setSnapGuide(snapped);
+                    } else {
+                        setSnapGuide(null);
+                    }
+                }
                 useTimelineStore.getState().resizeClip(dragging.clipId, newDuration, false);
             }
         };
 
-        const handleMouseUp = () => setDragging(null);
+        const handleMouseUp = () => {
+            setDragging(null);
+            setSnapGuide(null);
+        };
 
         window.addEventListener('mousemove', handleMouseMove);
         window.addEventListener('mouseup', handleMouseUp);
@@ -144,7 +274,7 @@ export const Timeline = ({
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [dragging, timeScale, tracks]);
+    }, [dragging, timeScale, tracks, clips, getSnapPoints, resolveSnap]);
 
     const handleWheel = useCallback((e) => {
         if (e.ctrlKey || e.metaKey) {
@@ -176,7 +306,7 @@ export const Timeline = ({
     const renderClip = (clip) => {
         const x = timeToX(clip.startTime);
         const w = timeToX(clip.duration);
-        const isSelected = clip.id === selectedClipId;
+        const isSelected = clip.id === selectedClipId || selectedClipIds.includes(clip.id);
         const track = tracks[clip.trackIndex];
 
         const hasJLCut = clip.audioOffset !== 0 || (clip.audioDuration !== null && clip.audioDuration !== clip.duration);
@@ -192,7 +322,6 @@ export const Timeline = ({
                         width: Math.max(w, 8),
                         top: clip.trackIndex * TRACK_HEIGHT + 2,
                         height: TRACK_HEIGHT - 4,
-                        backgroundColor: clip.color || 'var(--primary)',
                         opacity: track?.muted ? 0.4 : 1,
                     }}
                     onMouseDown={(e) => handleClipMouseDown(e, clip, null)}
@@ -351,6 +480,19 @@ export const Timeline = ({
                     </div>
                     <div className="tl-clips" style={{ width: totalWidth }}>
                         {clips.map(renderClip)}
+                        {/* Snap guide line */}
+                        {snapGuide !== null && (
+                            <div className="tl-snap-guide" style={{ left: timeToX(snapGuide) }} />
+                        )}
+                        {/* Marquee selection rectangle */}
+                        {marquee && (
+                            <div className="tl-marquee" style={{
+                                left: Math.min(marquee.startX, marquee.endX),
+                                top: Math.min(marquee.startY, marquee.endY),
+                                width: Math.abs(marquee.endX - marquee.startX),
+                                height: Math.abs(marquee.endY - marquee.startY),
+                            }} />
+                        )}
                         {/* Floating action bar for selected clip */}
                         {selectedClipId && (() => {
                             const selectedClip = clips.find(c => c.id === selectedClipId);

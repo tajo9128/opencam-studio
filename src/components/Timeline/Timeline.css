@@ -628,3 +628,26 @@
     color: #fff !important;
     border-color: var(--tl-accent) !important;
 }
+
+/* Snap guide line */
+.tl-snap-guide {
+    position: absolute;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    background: var(--tl-accent);
+    box-shadow: 0 0 8px var(--tl-accent-glow);
+    z-index: 90;
+    pointer-events: none;
+    transform: translateX(-1px);
+}
+
+/* Marquee selection rectangle */
+.tl-marquee {
+    position: absolute;
+    border: 1px solid rgba(99,102,241,0.6);
+    background: rgba(99,102,241,0.1);
+    border-radius: 4px;
+    z-index: 80;
+    pointer-events: none;
+}
