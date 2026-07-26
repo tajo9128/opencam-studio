@@ -22,6 +22,8 @@ export const Timeline = ({
     clipThumbnails = {},
     onPlayPause,
     mode = 'simple',
+    onNoiseReduction,
+    noiseReductionEnabled,
 }) => {
     const containerRef = useRef(null);
     const scrollRef = useRef(null);
@@ -479,47 +481,110 @@ export const Timeline = ({
                 />
             )}
 
+            {/* Edit Toolbar with Icons */}
+            <div className="tl-edit-toolbar" role="toolbar" aria-label="Edit tools">
+                <button className="tl-toolbar-btn" onClick={() => useTimelineStore.getState().splitAtPlayhead()} disabled={!selectedClipId} title="Split at Playhead (S)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><polyline points="8 6 12 2 16 6"/><polyline points="8 18 12 22 16 18"/></svg>
+                    <span>Split</span>
+                </button>
+                <button className="tl-toolbar-btn" onClick={() => {
+                    if (!selectedClipId) return;
+                    const store = useTimelineStore.getState();
+                    const clip = store.clips.find(c => c.id === selectedClipId);
+                    if (!clip) return;
+                    const playheadTime = store.currentTime;
+                    if (playheadTime > clip.startTime && playheadTime < clip.startTime + clip.duration) {
+                        store.splitAtPlayhead();
+                        const leftClip = store.clips.find(c => c.id === selectedClipId);
+                        if (leftClip) store.removeClip(leftClip.id);
+                    }
+                }} disabled={!selectedClipId} title="Razor Cut (X)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+                    <span>Cut</span>
+                </button>
+                <button className="tl-toolbar-btn" onClick={() => selectedClipId && useTimelineStore.getState().removeClip(selectedClipId)} disabled={!selectedClipId} title="Delete Clip (Del)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    <span>Delete</span>
+                </button>
+                <div className="tl-toolbar-divider" />
+                <button className="tl-toolbar-btn" onClick={() => selectedClipId && useTimelineStore.getState().duplicateClip(selectedClipId)} disabled={!selectedClipId} title="Duplicate Clip">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    <span>Duplicate</span>
+                </button>
+                <button className="tl-toolbar-btn" onClick={() => {
+                    if (!selectedClipId) return;
+                    const store = useTimelineStore.getState();
+                    const clip = store.clips.find(c => c.id === selectedClipId);
+                    if (clip) {
+                        const newSpeed = clip.speed === 1 ? 2 : 1;
+                        store.updateClip(selectedClipId, { speed: newSpeed });
+                    }
+                }} disabled={!selectedClipId} title="Toggle Speed (1x/2x)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+                    <span>Speed</span>
+                </button>
+                <div className="tl-toolbar-divider" />
+                <button className={`tl-toolbar-btn ${noiseReductionEnabled ? 'tl-toolbar-active' : ''}`} onClick={() => onNoiseReduction?.()} title="Noise Reduction">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                    <span>Denoise</span>
+                </button>
+                <button className="tl-toolbar-btn" onClick={() => {
+                    if (!selectedClipId) return;
+                    const store = useTimelineStore.getState();
+                    const clip = store.clips.find(c => c.id === selectedClipId);
+                    if (clip) {
+                        store.updateClip(selectedClipId, { filters: [] });
+                    }
+                }} disabled={!selectedClipId} title="Remove All Filters">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                    <span>Clear FX</span>
+                </button>
+                <div className="tl-toolbar-spacer" />
+                <button className="tl-toolbar-btn" onClick={() => useTimelineStore.getState().undo?.()} title="Undo (Ctrl+Z)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                    <span>Undo</span>
+                </button>
+                <button className="tl-toolbar-btn" onClick={() => useTimelineStore.getState().redo?.()} title="Redo (Ctrl+Y)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                    <span>Redo</span>
+                </button>
+            </div>
+
             <div className="tl-transport" role="toolbar" aria-label="Timeline transport controls">
-                <button className="tl-transport-btn" onClick={() => useTimelineStore.getState().setCurrentTime(0)} title="Stop" aria-label="Stop playback">Stop</button>
+                <button className="tl-transport-btn" onClick={() => useTimelineStore.getState().setCurrentTime(0)} title="Stop" aria-label="Stop playback">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                </button>
                 <button className="tl-transport-btn tl-transport-play"
                     onClick={() => onPlayPause?.()}
                     aria-label={isPlaying ? 'Pause playback' : 'Play'}>
-                    {isPlaying ? 'Pause' : 'Play'}
+                    {isPlaying ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                    ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    )}
                 </button>
                 <span className="tl-transport-time" aria-label={`Current time: ${formatTime(currentTime)}`}>{formatTime(currentTime)}</span>
                 <span className="tl-transport-divider">/</span>
                 <span className="tl-transport-time tl-transport-duration" aria-label={`Duration: ${formatTime(duration)}`}>{formatTime(duration)}</span>
                 <div className="tl-transport-spacer" />
-                <button className="tl-transport-btn" onClick={() => useTimelineStore.getState().splitAtPlayhead()} disabled={!selectedClipId} title="Split (S)" aria-label="Split clip at playhead">Split</button>
-                <button className="tl-transport-btn" onClick={() => {
-                    if (!selectedClipId) return;
-                    const store = useTimelineStore.getState();
-                    const clip = store.clips.find(c => c.id === selectedClipId);
-                    if (!clip) return;
-                    // Cut: split at playhead and delete the part before playhead
-                    const playheadTime = store.currentTime;
-                    if (playheadTime > clip.startTime && playheadTime < clip.startTime + clip.duration) {
-                        // Split the clip at playhead
-                        store.splitAtPlayhead();
-                        // Delete the left part (before playhead)
-                        const leftClip = store.clips.find(c => c.id === selectedClipId);
-                        if (leftClip) {
-                            store.removeClip(leftClip.id);
-                        }
-                    }
-                }} disabled={!selectedClipId} title="Cut (X)" aria-label="Cut clip at playhead">Cut</button>
-                <button className="tl-transport-btn" onClick={() => selectedClipId && useTimelineStore.getState().removeClip(selectedClipId)} disabled={!selectedClipId} title="Delete (Del)" aria-label="Delete selected clip">Delete</button>
-                <div className="tl-transport-spacer" />
-                <button className="tl-transport-btn" onClick={() => useTimelineStore.getState().setZoom(z => Math.max(0.1, z * 0.8))} title="Zoom Out" aria-label="Zoom timeline out">-</button>
-                <span className="tl-zoom-label">{Math.round(zoom * 100)}%</span>
-                <button className="tl-transport-btn" onClick={() => useTimelineStore.getState().setZoom(z => Math.min(10, z * 1.25))} title="Zoom In" aria-label="Zoom timeline in">+</button>
-                <div className="tl-transport-spacer" />
-                <button className={`tl-transport-btn ${magneticMode ? 'tl-transport-active' : ''}`}
-                    onClick={() => useTimelineStore.getState().toggleMagneticMode()}
-                    title={`Magnetic: ${magneticMode ? 'ON' : 'OFF'}`}
-                    aria-label={`Toggle magnetic timeline, currently ${magneticMode ? 'on' : 'off'}`}>
-                    {magneticMode ? 'M On' : 'M Off'}
+                <button className="tl-transport-btn" onClick={() => useTimelineStore.getState().setZoom(z => Math.max(0.1, z * 0.8))} title="Zoom Out" aria-label="Zoom timeline out">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 </button>
+                <span className="tl-zoom-label">{Math.round(zoom * 100)}%</span>
+                <button className="tl-transport-btn" onClick={() => useTimelineStore.getState().setZoom(z => Math.min(10, z * 1.25))} title="Zoom In" aria-label="Zoom timeline in">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+                {mode === 'advanced' && (
+                    <>
+                        <div className="tl-toolbar-divider" />
+                        <button className={`tl-transport-btn ${magneticMode ? 'tl-transport-active' : ''}`}
+                            onClick={() => useTimelineStore.getState().toggleMagneticMode()}
+                            title={`Magnetic: ${magneticMode ? 'ON' : 'OFF'}`}
+                            aria-label={`Toggle magnetic timeline, currently ${magneticMode ? 'on' : 'off'}`}>
+                            {magneticMode ? 'M On' : 'M Off'}
+                        </button>
+                    </>
+                )}
             </div>
         </div>
     );

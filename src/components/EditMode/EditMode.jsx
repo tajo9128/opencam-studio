@@ -860,6 +860,14 @@ export const EditMode = () => {
                     onToggleLock={timeline.toggleTrackLock}
                     onDropExternal={handleDropExternal}
                     mode={editorMode}
+                    noiseReductionEnabled={selectedClip?.noiseReduction?.enabled || false}
+                    onNoiseReduction={() => {
+                        if (!selectedClip) return;
+                        const isEnabled = selectedClip.noiseReduction?.enabled;
+                        timeline.updateClip(selectedClip.id, {
+                            noiseReduction: isEnabled ? null : { strength: 0.7, enabled: true }
+                        });
+                    }}
                 />
             </div>
 

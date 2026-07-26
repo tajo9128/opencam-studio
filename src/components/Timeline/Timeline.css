@@ -260,6 +260,70 @@
     flex-shrink: 0;
 }
 
+/* Edit Toolbar */
+.tl-edit-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.3rem 0.75rem;
+    border-top: 1px solid var(--glass-border);
+    background: var(--bg-card, #0f172a);
+    flex-shrink: 0;
+    overflow-x: auto;
+}
+
+.tl-toolbar-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-muted, #94a3b8);
+    border-radius: 6px;
+    font-size: 0.55rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-width: 48px;
+    white-space: nowrap;
+}
+
+.tl-toolbar-btn svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.tl-toolbar-btn:hover {
+    background: var(--glass, rgba(255,255,255,0.05));
+    color: var(--text-main, #e2e8f0);
+    border-color: var(--glass-border, rgba(255,255,255,0.1));
+}
+
+.tl-toolbar-btn:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.tl-toolbar-btn.tl-toolbar-active {
+    background: rgba(139, 92, 246, 0.15);
+    color: var(--primary, #8b5cf6);
+    border-color: rgba(139, 92, 246, 0.3);
+}
+
+.tl-toolbar-divider {
+    width: 1px;
+    height: 24px;
+    background: var(--glass-border, rgba(255,255,255,0.1));
+    margin: 0 0.2rem;
+    flex-shrink: 0;
+}
+
+.tl-toolbar-spacer {
+    flex: 1;
+}
+
 .tl-transport-btn {
     padding: 0.25rem 0.5rem;
     border: 1px solid var(--glass-border);
