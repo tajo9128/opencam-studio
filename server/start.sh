@@ -1,6 +1,16 @@
 #!/bin/sh
 set -e
 
+# Set directory paths for Docker
+export VIDEOS_DIR=/videos
+export PROXIES_DIR=/proxies
+export PROJECTS_DIR=/projects
+export OUTPUT_DIR=/output
+export RECORDINGS_DIR=/recordings
+
+# Ensure .uploads temp directory exists (multer needs it)
+mkdir -p /videos/.uploads
+
 # Graceful shutdown
 cleanup() {
     echo "Shutting down..."

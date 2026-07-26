@@ -250,8 +250,18 @@ export const EditMode = () => {
                     // Large file — upload to server, edit from 480p proxy (supports 10GB+)
                     const formData = new FormData();
                     formData.append('file', file);
-                    fetch('/api/upload', { method: 'POST', body: formData })
+                    
+                    // AbortController with 30 min timeout for large files
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 1800000);
+                    
+                    fetch('/api/upload', { 
+                        method: 'POST', 
+                        body: formData,
+                        signal: controller.signal,
+                    })
                         .then(r => {
+                            clearTimeout(timeoutId);
                             if (!r.ok) {
                                 return r.json().catch(() => ({})).then(err => {
                                     throw new Error(err.error || `Upload failed: ${r.status} ${r.statusText}`);
@@ -282,7 +292,10 @@ export const EditMode = () => {
                             setTimeout(() => setUploadQueue(prev => prev.filter(f => f.id !== fileId)), 2000);
                         })
                         .catch((err) => {
-                            const errorMsg = err.message || 'server upload failed';
+                            clearTimeout(timeoutId);
+                            const errorMsg = err.name === 'AbortError' 
+                                ? 'Upload timed out (30 min limit). Try a smaller file.' 
+                                : (err.message || 'server upload failed');
                             setUploadQueue(prev => prev.map(f => f.id === fileId ? { ...f, status: 'error', error: errorMsg } : f));
                         });
                     return;

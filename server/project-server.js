@@ -111,19 +111,37 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
         const sourcePath = path.join(VIDEOS_DIR, `${clipId}${ext}`);
         const proxyPath = path.join(PROXIES_DIR, `${clipId}.mp4`);
 
-        fs.renameSync(req.file.path, sourcePath);
+        // Move uploaded file to final location
+        try {
+            fs.renameSync(req.file.path, sourcePath);
+        } catch (renameErr) {
+            // Cross-device move fallback (Docker volumes)
+            fs.copyFileSync(req.file.path, sourcePath);
+            fs.unlinkSync(req.file.path);
+        }
 
-        await runFfmpeg([
-            '-i', sourcePath,
-            '-vf', 'scale=854:480',
-            '-c:v', 'libx264',
-            '-preset', 'fast',
-            '-crf', '28',
-            '-c:a', 'aac',
-            '-b:a', '128k',
-            '-movflags', '+faststart',
-            '-y', proxyPath,
-        ]);
+        console.log(`[project-server] Upload received: ${req.file.originalname} (${(req.file.size / 1024 / 1024).toFixed(1)}MB)`);
+        console.log(`[project-server] Generating proxy...`);
+
+        // Generate 480p proxy (skip if FFmpeg fails - still return the source)
+        let proxyGenerated = false;
+        try {
+            await runFfmpeg([
+                '-i', sourcePath,
+                '-vf', 'scale=854:480',
+                '-c:v', 'libx264',
+                '-preset', 'fast',
+                '-crf', '28',
+                '-c:a', 'aac',
+                '-b:a', '128k',
+                '-movflags', '+faststart',
+                '-y', proxyPath,
+            ]);
+            proxyGenerated = true;
+            console.log(`[project-server] Proxy generated: ${proxyPath}`);
+        } catch (ffmpegErr) {
+            console.error(`[project-server] Proxy generation failed (using source):`, ffmpegErr.message);
+        }
 
         const duration = await getMediaDuration(sourcePath);
 
@@ -131,7 +149,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
             clipId,
             originalName: req.file.originalname,
             sourceUrl: `/api/videos/${clipId}/source`,
-            proxyUrl: `/api/videos/${clipId}`,
+            proxyUrl: proxyGenerated ? `/api/videos/${clipId}` : `/api/videos/${clipId}/source`,
             duration,
             size: fs.statSync(sourcePath).size,
         });
@@ -330,16 +348,28 @@ app.get('/api/jobs/:jobId/output', (req, res) => {
 
 // ---------- Helpers ----------
 
-function runFfmpeg(args) {
+function runFfmpeg(args, timeoutMs = 600000) {
     return new Promise((resolve, reject) => {
         const proc = spawn('ffmpeg', args);
         let stderr = '';
+        let killed = false;
+        
+        const timer = setTimeout(() => {
+            killed = true;
+            proc.kill('SIGKILL');
+        }, timeoutMs);
+        
         proc.stderr.on('data', d => stderr += d.toString());
         proc.on('close', code => {
-            if (code === 0) resolve(stderr);
+            clearTimeout(timer);
+            if (killed) reject(new Error(`FFmpeg timed out after ${timeoutMs / 1000}s`));
+            else if (code === 0) resolve(stderr);
             else reject(new Error(`FFmpeg exited ${code}: ${stderr.slice(-500)}`));
         });
-        proc.on('error', reject);
+        proc.on('error', (err) => {
+            clearTimeout(timer);
+            reject(err);
+        });
     });
 }
 
