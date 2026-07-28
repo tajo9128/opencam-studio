@@ -14,7 +14,7 @@ import { EffectBadge } from './EffectBadge';
 import { WaveformCanvas } from './WaveformCanvas';
 import './Timeline.css';
 
-const TRACK_HEIGHT = 48;
+const TRACK_HEIGHT = 80;
 const TIME_SCALE_BASE = 80;
 const SNAP_THRESHOLD_PX = 7;
 
@@ -761,6 +761,16 @@ export const Timeline = ({
                 <button className="tl-transport-btn" onClick={() => useTimelineStore.getState().setZoom(z => Math.max(0.1, z * 0.8))} title="Zoom Out" aria-label="Zoom timeline out">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 </button>
+                <input
+                    type="range"
+                    className="tl-zoom-slider"
+                    min={0.1}
+                    max={5}
+                    step={0.1}
+                    value={zoom}
+                    onChange={e => useTimelineStore.getState().setZoom(parseFloat(e.target.value))}
+                    title={`Zoom: ${Math.round(zoom * 100)}%`}
+                />
                 <span className="tl-zoom-label">{Math.round(zoom * 100)}%</span>
                 <button className="tl-transport-btn" onClick={() => useTimelineStore.getState().setZoom(z => Math.min(10, z * 1.25))} title="Zoom In" aria-label="Zoom timeline in">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>

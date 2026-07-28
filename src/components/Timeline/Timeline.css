@@ -528,6 +528,37 @@
     font-variant-numeric: tabular-nums;
 }
 
+.tl-zoom-slider {
+    width: 80px;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--tl-line);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+}
+
+.tl-zoom-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--tl-accent);
+    cursor: pointer;
+    border: 2px solid var(--tl-surface);
+}
+
+.tl-zoom-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--tl-accent);
+    cursor: pointer;
+    border: 2px solid var(--tl-surface);
+}
+
 .tl-add-track {
     display: flex;
     align-items: center;
