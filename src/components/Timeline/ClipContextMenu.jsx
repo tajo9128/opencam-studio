@@ -8,8 +8,25 @@ export const ClipContextMenu = ({ x, y, clip, onClose, onSplit, onDelete, onDupl
 
     return (
         <div className="clip-context-menu" style={{ left: x, top: y }} onClick={e => e.stopPropagation()}>
-            <div className="ctx-item" onClick={() => { onSplit(); onClose(); }}>Split at Playhead</div>
+            <div className="ctx-item" onClick={() => { onSplit(); onClose(); }}>Split (Keep Both)</div>
+            <div className="ctx-item" onClick={() => {
+                useTimelineStore.getState().sliceAtPlayhead('keepLeft');
+                onClose();
+            }}>Slice - Keep Left</div>
+            <div className="ctx-item" onClick={() => {
+                useTimelineStore.getState().sliceAtPlayhead('keepRight');
+                onClose();
+            }}>Slice - Keep Right</div>
+            <div className="ctx-divider" />
             <div className="ctx-item" onClick={() => { onDuplicate(); onClose(); }}>Duplicate</div>
+            <div className="ctx-item" onClick={() => {
+                useTimelineStore.getState().copyClip();
+                onClose();
+            }}>Copy</div>
+            <div className="ctx-item" onClick={() => {
+                useTimelineStore.getState().cutClip();
+                onClose();
+            }}>Cut</div>
             <div className="ctx-divider" />
             <div className="ctx-item ctx-submenu" onMouseEnter={() => setSpeedMenu(true)} onMouseLeave={() => setSpeedMenu(false)}>
                 Speed
@@ -30,6 +47,10 @@ export const ClipContextMenu = ({ x, y, clip, onClose, onSplit, onDelete, onDupl
             )}
             <div className="ctx-divider" />
             <div className="ctx-item ctx-danger" onClick={() => { onDelete(clip.id); onClose(); }}>Delete</div>
+            <div className="ctx-item ctx-danger" onClick={() => {
+                useTimelineStore.getState().rippleDelete();
+                onClose();
+            }}>Ripple Delete</div>
             {mode === 'advanced' && (
                 <>
                     <div className="ctx-separator" />

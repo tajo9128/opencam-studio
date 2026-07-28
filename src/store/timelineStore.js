@@ -63,6 +63,176 @@ export const useTimelineStore = create((set, get) => ({
     },
     annotations: [],
     animations: [],
+    clipboard: null, // For copy/paste
+
+    // === SLICE OPERATIONS (from OpenShot) ===
+    sliceAtPlayhead: (mode = 'keepBoth') => {
+        const state = get();
+        if (!state.selectedClipId) return;
+        const clip = state.clips.find(c => c.id === state.selectedClipId);
+        if (!clip) return;
+        const t = state.currentTime;
+        if (t <= clip.startTime || t >= clip.startTime + clip.duration) return;
+
+        const splitPoint = t - clip.startTime;
+        const leftDuration = splitPoint;
+        const rightDuration = clip.duration - splitPoint;
+
+        if (mode === 'keepLeft') {
+            // Keep only left part
+            const newClips = state.clips.map(c => {
+                if (c.id !== state.selectedClipId) return c;
+                return { ...c, duration: leftDuration, sourceEnd: c.sourceStart + leftDuration * (c.speed || 1) };
+            });
+            set({ clips: newClips, duration: computeDuration(newClips) });
+        } else if (mode === 'keepRight') {
+            // Keep only right part
+            const newClips = state.clips.map(c => {
+                if (c.id !== state.selectedClipId) return c;
+                return {
+                    ...c,
+                    startTime: t,
+                    duration: rightDuration,
+                    sourceStart: c.sourceStart + leftDuration * (c.speed || 1),
+                };
+            });
+            set({ clips: newClips, duration: computeDuration(newClips) });
+        } else {
+            // Keep both (split into two clips)
+            const leftClip = { ...clip, duration: leftDuration, sourceEnd: clip.sourceStart + leftDuration * (clip.speed || 1) };
+            const rightClip = createClip({
+                ...clip,
+                id: undefined,
+                startTime: t,
+                duration: rightDuration,
+                sourceStart: clip.sourceStart + leftDuration * (clip.speed || 1),
+                sourceEnd: clip.sourceEnd,
+            });
+            const newClips = state.clips.flatMap(c => {
+                if (c.id !== state.selectedClipId) return [c];
+                return [leftClip, rightClip];
+            });
+            set({ clips: newClips, duration: computeDuration(newClips) });
+        }
+        // Save undo
+        set({
+            undoStack: [...state.undoStack.slice(-MAX_UNDO + 1), { clips: JSON.parse(JSON.stringify(state.clips)), tracks: JSON.parse(JSON.stringify(state.tracks)) }],
+            redoStack: [],
+            canUndo: true,
+            canRedo: false,
+        });
+    },
+
+    // === COPY/PASTE (from OpenShot) ===
+    copyClip: () => {
+        const state = get();
+        if (!state.selectedClipId) return;
+        const clip = state.clips.find(c => c.id === state.selectedClipId);
+        if (clip) {
+            set({ clipboard: JSON.parse(JSON.stringify(clip)) });
+        }
+    },
+
+    pasteClip: () => {
+        const state = get();
+        if (!state.clipboard) return;
+        const pastedClip = createClip({
+            ...state.clipboard,
+            id: undefined,
+            startTime: state.currentTime,
+        });
+        const newClips = [...state.clips, pastedClip];
+        set({
+            clips: newClips,
+            duration: computeDuration(newClips),
+            selectedClipId: pastedClip.id,
+            undoStack: [...state.undoStack.slice(-MAX_UNDO + 1), { clips: JSON.parse(JSON.stringify(state.clips)), tracks: JSON.parse(JSON.stringify(state.tracks)) }],
+            redoStack: [],
+            canUndo: true,
+            canRedo: false,
+        });
+    },
+
+    cutClip: () => {
+        const state = get();
+        if (!state.selectedClipId) return;
+        const clip = state.clips.find(c => c.id === state.selectedClipId);
+        if (clip) {
+            set({ clipboard: JSON.parse(JSON.stringify(clip)) });
+            // Remove the clip
+            const newClips = state.clips.filter(c => c.id !== state.selectedClipId);
+            set({
+                clips: newClips,
+                duration: computeDuration(newClips),
+                selectedClipId: null,
+                clipboard: get().clipboard,
+                undoStack: [...state.undoStack.slice(-MAX_UNDO + 1), { clips: JSON.parse(JSON.stringify(state.clips)), tracks: JSON.parse(JSON.stringify(state.tracks)) }],
+                redoStack: [],
+                canUndo: true,
+                canRedo: false,
+            });
+        }
+    },
+
+    // === RIPPLE DELETE (from OpenShot) ===
+    rippleDelete: () => {
+        const state = get();
+        if (!state.selectedClipId) return;
+        const clip = state.clips.find(c => c.id === state.selectedClipId);
+        if (!clip) return;
+
+        const clipEnd = clip.startTime + clip.duration;
+        const newClips = state.clips
+            .filter(c => c.id !== state.selectedClipId)
+            .map(c => {
+                // Shift clips that are after the deleted clip on the same track
+                if (c.trackIndex === clip.trackIndex && c.startTime >= clipEnd) {
+                    return { ...c, startTime: c.startTime - clip.duration };
+                }
+                return c;
+            });
+
+        set({
+            clips: newClips,
+            duration: computeDuration(newClips),
+            selectedClipId: null,
+            undoStack: [...state.undoStack.slice(-MAX_UNDO + 1), { clips: JSON.parse(JSON.stringify(state.clips)), tracks: JSON.parse(JSON.stringify(state.tracks)) }],
+            redoStack: [],
+            canUndo: true,
+            canRedo: false,
+        });
+    },
+
+    // === UNDO/REDO ===
+    undo: () => {
+        const state = get();
+        if (state.undoStack.length === 0) return;
+        const prev = state.undoStack[state.undoStack.length - 1];
+        set({
+            clips: prev.clips,
+            tracks: prev.tracks,
+            duration: computeDuration(prev.clips),
+            undoStack: state.undoStack.slice(0, -1),
+            redoStack: [...state.redoStack, { clips: JSON.parse(JSON.stringify(state.clips)), tracks: JSON.parse(JSON.stringify(state.tracks)) }],
+            canUndo: state.undoStack.length > 1,
+            canRedo: true,
+        });
+    },
+
+    redo: () => {
+        const state = get();
+        if (state.redoStack.length === 0) return;
+        const next = state.redoStack[state.redoStack.length - 1];
+        set({
+            clips: next.clips,
+            tracks: next.tracks,
+            duration: computeDuration(next.clips),
+            redoStack: state.redoStack.slice(0, -1),
+            undoStack: [...state.undoStack, { clips: JSON.parse(JSON.stringify(state.clips)), tracks: JSON.parse(JSON.stringify(state.tracks)) }],
+            canUndo: true,
+            canRedo: state.redoStack.length > 1,
+        });
+    },
 
     addClip: (trackIndex, clipData) => {
         const state = get();

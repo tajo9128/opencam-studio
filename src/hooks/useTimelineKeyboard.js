@@ -17,7 +17,8 @@ export const useTimelineKeyboard = ({
         const store = useTimelineStore.getState();
         const { selectedClipId, splitAtPlayhead, removeClip, trimStartToPlayhead,
                 trimEndToPlayhead, addMarker, undo, redo, setCurrentTime,
-                currentTime, duration, setZoom } = store;
+                currentTime, duration, setZoom,
+                sliceAtPlayhead, copyClip, pasteClip, cutClip, rippleDelete } = store;
 
         // Space: play/pause
         if (e.code === 'Space') {
@@ -26,11 +27,36 @@ export const useTimelineKeyboard = ({
             return;
         }
 
-        // S or C: split at playhead
-        if (e.code === 'KeyS' || e.code === 'KeyC') {
+        // S: split at playhead (keep both sides)
+        if (e.code === 'KeyS' && !e.ctrlKey && !e.metaKey) {
             if (selectedClipId) {
                 e.preventDefault();
                 splitAtPlayhead();
+            }
+            return;
+        }
+
+        // Ctrl+C: copy clip
+        if ((e.ctrlKey || e.metaKey) && e.code === 'KeyC') {
+            if (selectedClipId) {
+                e.preventDefault();
+                copyClip();
+            }
+            return;
+        }
+
+        // Ctrl+V: paste clip
+        if ((e.ctrlKey || e.metaKey) && e.code === 'KeyV') {
+            e.preventDefault();
+            pasteClip();
+            return;
+        }
+
+        // Ctrl+X: cut clip
+        if ((e.ctrlKey || e.metaKey) && e.code === 'KeyX') {
+            if (selectedClipId) {
+                e.preventDefault();
+                cutClip();
             }
             return;
         }
@@ -39,7 +65,11 @@ export const useTimelineKeyboard = ({
         if (e.code === 'Delete' || e.code === 'Backspace') {
             if (selectedClipId) {
                 e.preventDefault();
-                removeClip(selectedClipId);
+                if (e.shiftKey) {
+                    rippleDelete(); // Shift+Delete = ripple delete
+                } else {
+                    removeClip(selectedClipId); // Regular delete
+                }
             }
             return;
         }
@@ -58,6 +88,24 @@ export const useTimelineKeyboard = ({
             if (selectedClipId) {
                 e.preventDefault();
                 trimEndToPlayhead();
+            }
+            return;
+        }
+
+        // X: slice and keep left
+        if (e.code === 'KeyX' && !e.ctrlKey && !e.metaKey) {
+            if (selectedClipId) {
+                e.preventDefault();
+                sliceAtPlayhead('keepLeft');
+            }
+            return;
+        }
+
+        // Z: slice and keep right
+        if (e.code === 'KeyZ' && !e.ctrlKey && !e.metaKey) {
+            if (selectedClipId) {
+                e.preventDefault();
+                sliceAtPlayhead('keepRight');
             }
             return;
         }
