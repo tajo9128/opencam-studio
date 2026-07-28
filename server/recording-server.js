@@ -71,16 +71,28 @@ function generateSessionId() {
     return crypto.randomBytes(16).toString('hex');
 }
 
-function runFfmpeg(args) {
+function runFfmpeg(args, timeoutMs = 1800000) {
     return new Promise((resolve, reject) => {
         const proc = spawn('ffmpeg', args);
         let stderr = '';
+        let killed = false;
+        
+        const timer = setTimeout(() => {
+            killed = true;
+            proc.kill('SIGKILL');
+        }, timeoutMs);
+        
         proc.stderr.on('data', d => { stderr += d.toString(); });
         proc.on('close', code => {
-            if (code === 0) resolve(stderr);
+            clearTimeout(timer);
+            if (killed) reject(new Error(`FFmpeg timed out after ${timeoutMs / 1000}s`));
+            else if (code === 0) resolve(stderr);
             else reject(new Error(`FFmpeg exited ${code}: ${stderr.slice(-500)}`));
         });
-        proc.on('error', reject);
+        proc.on('error', (err) => {
+            clearTimeout(timer);
+            reject(err);
+        });
     });
 }
 

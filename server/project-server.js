@@ -120,13 +120,31 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
             fs.unlinkSync(req.file.path);
         }
 
-        console.log(`[project-server] Upload received: ${req.file.originalname} (${(req.file.size / 1024 / 1024).toFixed(1)}MB)`);
-        console.log(`[project-server] Generating proxy...`);
+        const fileSizeMB = (req.file.size / 1024 / 1024).toFixed(1);
+        console.log(`[project-server] Upload received: ${req.file.originalname} (${fileSizeMB}MB)`);
 
-        // Generate 480p proxy (skip if FFmpeg fails - still return the source)
-        let proxyGenerated = false;
-        try {
-            await runFfmpeg([
+        // Get duration immediately (fast, no encoding)
+        const duration = await getMediaDuration(sourcePath);
+
+        // For large files (>100MB), return immediately and generate proxy in background
+        const isLargeFile = req.file.size > 100 * 1024 * 1024;
+
+        if (isLargeFile) {
+            console.log(`[project-server] Large file detected (${fileSizeMB}MB). Returning source URL, generating proxy in background...`);
+            
+            // Return response immediately with source URL
+            res.json({
+                clipId,
+                originalName: req.file.originalname,
+                sourceUrl: `/api/videos/${clipId}/source`,
+                proxyUrl: `/api/videos/${clipId}/source`, // Use source until proxy is ready
+                duration,
+                size: req.file.size,
+                proxyGenerating: true,
+            });
+
+            // Generate proxy in background (no timeout limit)
+            runFfmpeg([
                 '-i', sourcePath,
                 '-vf', 'scale=854:480',
                 '-c:v', 'libx264',
@@ -136,23 +154,41 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
                 '-b:a', '128k',
                 '-movflags', '+faststart',
                 '-y', proxyPath,
-            ]);
-            proxyGenerated = true;
-            console.log(`[project-server] Proxy generated: ${proxyPath}`);
-        } catch (ffmpegErr) {
-            console.error(`[project-server] Proxy generation failed (using source):`, ffmpegErr.message);
+            ], 1800000).then(() => { // 30 min timeout for large files
+                console.log(`[project-server] Proxy generated for large file: ${proxyPath}`);
+            }).catch(err => {
+                console.error(`[project-server] Proxy generation failed for large file:`, err.message);
+            });
+        } else {
+            // Small files: generate proxy synchronously (blocking)
+            let proxyGenerated = false;
+            try {
+                await runFfmpeg([
+                    '-i', sourcePath,
+                    '-vf', 'scale=854:480',
+                    '-c:v', 'libx264',
+                    '-preset', 'fast',
+                    '-crf', '28',
+                    '-c:a', 'aac',
+                    '-b:a', '128k',
+                    '-movflags', '+faststart',
+                    '-y', proxyPath,
+                ]);
+                proxyGenerated = true;
+                console.log(`[project-server] Proxy generated: ${proxyPath}`);
+            } catch (ffmpegErr) {
+                console.error(`[project-server] Proxy generation failed (using source):`, ffmpegErr.message);
+            }
+
+            res.json({
+                clipId,
+                originalName: req.file.originalname,
+                sourceUrl: `/api/videos/${clipId}/source`,
+                proxyUrl: proxyGenerated ? `/api/videos/${clipId}` : `/api/videos/${clipId}/source`,
+                duration,
+                size: req.file.size,
+            });
         }
-
-        const duration = await getMediaDuration(sourcePath);
-
-        res.json({
-            clipId,
-            originalName: req.file.originalname,
-            sourceUrl: `/api/videos/${clipId}/source`,
-            proxyUrl: proxyGenerated ? `/api/videos/${clipId}` : `/api/videos/${clipId}/source`,
-            duration,
-            size: fs.statSync(sourcePath).size,
-        });
 
         // Clean up the .uploads temp dir if empty
         try {
