@@ -471,9 +471,14 @@ const ScreenRecorder = () => {
 
     useEffect(() => { if (isHistoryOpen && directoryHandle) syncLibrary(directoryHandle); }, [isHistoryOpen, directoryHandle, syncLibrary]);
 
-    const handleStartRecording = useCallback(() => {
+    const handleStartRecording = useCallback(async () => {
         if (isRecording || countdown !== null) return;
-        serverRec.start();
+        // Wait for WebSocket to connect before starting recording
+        const sessionId = await serverRec.start();
+        if (!sessionId) {
+            showToast('Recording Error', 'Failed to connect to recording server', 'error');
+            return;
+        }
         setCountdown(3);
         countdownTimerRef.current = setInterval(() => {
             setCountdown(prev => {
@@ -484,13 +489,13 @@ const ScreenRecorder = () => {
                 return prev - 1;
             });
         }, 1000);
-    }, [isRecording, countdown, startMediaRecording, serverRec, startTelemetry]);
+    }, [isRecording, countdown, startMediaRecording, serverRec, startTelemetry, showToast]);
 
     const startFlow = useCallback(async () => {
         if (isStartingRef.current || isRecording) return;
         isStartingRef.current = true; setIsStarting(true);
         if (!screenStream && !cameraStream) { setIsStarting(false); isStartingRef.current = false; return; }
-        handleStartRecording();
+        await handleStartRecording();
         setIsStarting(false); isStartingRef.current = false;
     }, [screenStream, cameraStream, isRecording, handleStartRecording]);
 
