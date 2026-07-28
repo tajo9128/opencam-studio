@@ -18,7 +18,8 @@ export const useTimelineKeyboard = ({
         const { selectedClipId, splitAtPlayhead, removeClip, trimStartToPlayhead,
                 trimEndToPlayhead, addMarker, undo, redo, setCurrentTime,
                 currentTime, duration, setZoom,
-                sliceAtPlayhead, copyClip, pasteClip, cutClip, rippleDelete } = store;
+                sliceAtPlayhead, copyClip, pasteClip, cutClip, rippleDelete,
+                sliceAllAtPlayhead, nudgeClip, fadeIn, fadeOut, removeFade } = store;
 
         // Space: play/pause
         if (e.code === 'Space') {
@@ -189,14 +190,62 @@ export const useTimelineKeyboard = ({
         // ArrowLeft: nudge playhead left
         if (e.code === 'ArrowLeft') {
             e.preventDefault();
-            setCurrentTime(Math.max(0, currentTime - (e.shiftKey ? 1 : 0.1)));
+            if (selectedClipId && e.ctrlKey) {
+                // Ctrl+Arrow = nudge clip left 1 frame
+                nudgeClip(selectedClipId, -1);
+            } else {
+                setCurrentTime(Math.max(0, currentTime - (e.shiftKey ? 1 : 0.1)));
+            }
             return;
         }
 
         // ArrowRight: nudge playhead right
         if (e.code === 'ArrowRight') {
             e.preventDefault();
-            setCurrentTime(Math.min(duration, currentTime + (e.shiftKey ? 1 : 0.1)));
+            if (selectedClipId && e.ctrlKey) {
+                // Ctrl+Arrow = nudge clip right 1 frame
+                nudgeClip(selectedClipId, 1);
+            } else {
+                setCurrentTime(Math.min(duration, currentTime + (e.shiftKey ? 1 : 0.1)));
+            }
+            return;
+        }
+
+        // Shift+ArrowLeft: nudge clip left 5 frames
+        if (e.code === 'ArrowLeft' && e.shiftKey && selectedClipId) {
+            e.preventDefault();
+            nudgeClip(selectedClipId, -5);
+            return;
+        }
+
+        // Shift+ArrowRight: nudge clip right 5 frames
+        if (e.code === 'ArrowRight' && e.shiftKey && selectedClipId) {
+            e.preventDefault();
+            nudgeClip(selectedClipId, 5);
+            return;
+        }
+
+        // A: slice all at playhead (keep both)
+        if (e.code === 'KeyA' && !e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            sliceAllAtPlayhead('keepBoth');
+            return;
+        }
+
+        // F: fade in/out toggle
+        if (e.code === 'KeyF' && !e.ctrlKey && !e.metaKey) {
+            if (selectedClipId) {
+                e.preventDefault();
+                const clip = store.clips.find(c => c.id === selectedClipId);
+                if (clip) {
+                    const hasFade = clip.filters?.some(f => f.filterId === 'fadeIn' || f.filterId === 'fadeOut');
+                    if (hasFade) {
+                        removeFade(selectedClipId);
+                    } else {
+                        fadeInOut(selectedClipId, 1);
+                    }
+                }
+            }
             return;
         }
     }, [isPlaying, play, pause]);

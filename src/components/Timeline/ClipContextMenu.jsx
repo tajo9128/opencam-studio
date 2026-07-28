@@ -28,6 +28,36 @@ export const ClipContextMenu = ({ x, y, clip, onClose, onSplit, onDelete, onDupl
                 onClose();
             }}>Cut</div>
             <div className="ctx-divider" />
+            <div className="ctx-item" onClick={() => {
+                useTimelineStore.getState().fadeIn(clip.id, 1);
+                onClose();
+            }}>Fade In (1s)</div>
+            <div className="ctx-item" onClick={() => {
+                useTimelineStore.getState().fadeOut(clip.id, 1);
+                onClose();
+            }}>Fade Out (1s)</div>
+            <div className="ctx-item" onClick={() => {
+                useTimelineStore.getState().fadeInOut(clip.id, 1);
+                onClose();
+            }}>Fade In & Out</div>
+            <div className="ctx-item" onClick={() => {
+                useTimelineStore.getState().removeFade(clip.id);
+                onClose();
+            }}>Remove Fades</div>
+            <div className="ctx-divider" />
+            <div className="ctx-item" onClick={() => {
+                useTimelineStore.getState().rotateClip(clip.id, 90);
+                onClose();
+            }}>Rotate 90° Right</div>
+            <div className="ctx-item" onClick={() => {
+                useTimelineStore.getState().rotateClip(clip.id, -90);
+                onClose();
+            }}>Rotate 90° Left</div>
+            <div className="ctx-item" onClick={() => {
+                useTimelineStore.getState().rotateClip(clip.id, 180);
+                onClose();
+            }}>Rotate 180°</div>
+            <div className="ctx-divider" />
             <div className="ctx-item ctx-submenu" onMouseEnter={() => setSpeedMenu(true)} onMouseLeave={() => setSpeedMenu(false)}>
                 Speed
                 {speedMenu && (

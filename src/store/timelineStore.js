@@ -234,6 +234,232 @@ export const useTimelineStore = create((set, get) => ({
         });
     },
 
+    // === FADE IN/OUT (from OpenShot) ===
+    fadeIn: (clipId, duration = 1) => {
+        const state = get();
+        const clip = state.clips.find(c => c.id === clipId);
+        if (!clip) return;
+        const filters = [...(clip.filters || [])];
+        const existingIdx = filters.findIndex(f => f.filterId === 'fadeIn');
+        const fadeFilter = { filterId: 'fadeIn', params: { duration } };
+        if (existingIdx >= 0) {
+            filters[existingIdx] = fadeFilter;
+        } else {
+            filters.push(fadeFilter);
+        }
+        set({
+            clips: state.clips.map(c => c.id === clipId ? { ...c, filters } : c),
+            undoStack: [...state.undoStack.slice(-MAX_UNDO + 1), { clips: JSON.parse(JSON.stringify(state.clips)), tracks: JSON.parse(JSON.stringify(state.tracks)) }],
+            redoStack: [],
+            canUndo: true,
+            canRedo: false,
+        });
+    },
+
+    fadeOut: (clipId, duration = 1) => {
+        const state = get();
+        const clip = state.clips.find(c => c.id === clipId);
+        if (!clip) return;
+        const filters = [...(clip.filters || [])];
+        const existingIdx = filters.findIndex(f => f.filterId === 'fadeOut');
+        const fadeFilter = { filterId: 'fadeOut', params: { duration } };
+        if (existingIdx >= 0) {
+            filters[existingIdx] = fadeFilter;
+        } else {
+            filters.push(fadeFilter);
+        }
+        set({
+            clips: state.clips.map(c => c.id === clipId ? { ...c, filters } : c),
+            undoStack: [...state.undoStack.slice(-MAX_UNDO + 1), { clips: JSON.parse(JSON.stringify(state.clips)), tracks: JSON.parse(JSON.stringify(state.tracks)) }],
+            redoStack: [],
+            canUndo: true,
+            canRedo: false,
+        });
+    },
+
+    fadeInOut: (clipId, duration = 1) => {
+        const state = get();
+        const clip = state.clips.find(c => c.id === clipId);
+        if (!clip) return;
+        const filters = [...(clip.filters || [])];
+        const fadeIdx = filters.findIndex(f => f.filterId === 'fadeIn');
+        const fadeOutIdx = filters.findIndex(f => f.filterId === 'fadeOut');
+        const fadeInFilter = { filterId: 'fadeIn', params: { duration } };
+        const fadeOutFilter = { filterId: 'fadeOut', params: { duration } };
+        if (fadeIdx >= 0) filters[fadeIdx] = fadeInFilter;
+        else filters.push(fadeInFilter);
+        if (fadeOutIdx >= 0) filters[fadeOutIdx] = fadeOutFilter;
+        else filters.push(fadeOutFilter);
+        set({
+            clips: state.clips.map(c => c.id === clipId ? { ...c, filters } : c),
+            undoStack: [...state.undoStack.slice(-MAX_UNDO + 1), { clips: JSON.parse(JSON.stringify(state.clips)), tracks: JSON.parse(JSON.stringify(state.tracks)) }],
+            redoStack: [],
+            canUndo: true,
+            canRedo: false,
+        });
+    },
+
+    removeFade: (clipId) => {
+        const state = get();
+        const clip = state.clips.find(c => c.id === clipId);
+        if (!clip) return;
+        const filters = (clip.filters || []).filter(f => f.filterId !== 'fadeIn' && f.filterId !== 'fadeOut');
+        set({
+            clips: state.clips.map(c => c.id === clipId ? { ...c, filters } : c),
+            undoStack: [...state.undoStack.slice(-MAX_UNDO + 1), { clips: JSON.parse(JSON.stringify(state.clips)), tracks: JSON.parse(JSON.stringify(state.tracks)) }],
+            redoStack: [],
+            canUndo: true,
+            canRedo: false,
+        });
+    },
+
+    // === ROTATION PRESETS (from OpenShot) ===
+    rotateClip: (clipId, degrees) => {
+        const state = get();
+        const clip = state.clips.find(c => c.id === clipId);
+        if (!clip) return;
+        const filters = [...(clip.filters || [])];
+        const existingIdx = filters.findIndex(f => f.filterId === 'rotate');
+        const rotateFilter = { filterId: 'rotate', params: { degrees } };
+        if (existingIdx >= 0) {
+            filters[existingIdx] = rotateFilter;
+        } else {
+            filters.push(rotateFilter);
+        }
+        set({
+            clips: state.clips.map(c => c.id === clipId ? { ...c, filters } : c),
+            undoStack: [...state.undoStack.slice(-MAX_UNDO + 1), { clips: JSON.parse(JSON.stringify(state.clips)), tracks: JSON.parse(JSON.stringify(state.tracks)) }],
+            redoStack: [],
+            canUndo: true,
+            canRedo: false,
+        });
+    },
+
+    // === SLICE ALL (from OpenShot) ===
+    sliceAllAtPlayhead: (mode = 'keepBoth') => {
+        const state = get();
+        const t = state.currentTime;
+        const newClips = [];
+
+        state.clips.forEach(clip => {
+            if (t <= clip.startTime || t >= clip.startTime + clip.duration) {
+                newClips.push(clip);
+                return;
+            }
+
+            const leftDuration = t - clip.startTime;
+            const rightDuration = clip.duration - leftDuration;
+            const speed = clip.speed || 1;
+
+            if (mode === 'keepLeft') {
+                newClips.push({ ...clip, duration: leftDuration, sourceEnd: clip.sourceStart + leftDuration * speed });
+            } else if (mode === 'keepRight') {
+                newClips.push({ ...clip, startTime: t, duration: rightDuration, sourceStart: clip.sourceStart + leftDuration * speed });
+            } else {
+                // Keep both
+                newClips.push({ ...clip, duration: leftDuration, sourceEnd: clip.sourceStart + leftDuration * speed });
+                newClips.push(createClip({
+                    ...clip,
+                    id: undefined,
+                    startTime: t,
+                    duration: rightDuration,
+                    sourceStart: clip.sourceStart + leftDuration * speed,
+                    sourceEnd: clip.sourceEnd,
+                }));
+            }
+        });
+
+        set({
+            clips: newClips,
+            duration: computeDuration(newClips),
+            undoStack: [...state.undoStack.slice(-MAX_UNDO + 1), { clips: JSON.parse(JSON.stringify(state.clips)), tracks: JSON.parse(JSON.stringify(state.tracks)) }],
+            redoStack: [],
+            canUndo: true,
+            canRedo: false,
+        });
+    },
+
+    // === REMOVE GAP (from OpenShot) ===
+    removeGap: (trackIndex) => {
+        const state = get();
+        const t = state.currentTime;
+        const trackClips = state.clips
+            .filter(c => c.trackIndex === trackIndex)
+            .sort((a, b) => a.startTime - b.startTime);
+
+        // Find gap at playhead
+        for (let i = 0; i < trackClips.length - 1; i++) {
+            const currentEnd = trackClips[i].startTime + trackClips[i].duration;
+            const nextStart = trackClips[i + 1].startTime;
+            if (nextStart > currentEnd && t >= currentEnd && t <= nextStart) {
+                const gapDuration = nextStart - currentEnd;
+                const newClips = state.clips.map(c => {
+                    if (c.trackIndex === trackIndex && c.startTime >= nextStart) {
+                        return { ...c, startTime: c.startTime - gapDuration };
+                    }
+                    return c;
+                });
+                set({
+                    clips: newClips,
+                    duration: computeDuration(newClips),
+                    undoStack: [...state.undoStack.slice(-MAX_UNDO + 1), { clips: JSON.parse(JSON.stringify(state.clips)), tracks: JSON.parse(JSON.stringify(state.tracks)) }],
+                    redoStack: [],
+                    canUndo: true,
+                    canRedo: false,
+                });
+                return;
+            }
+        }
+    },
+
+    removeAllGaps: (trackIndex) => {
+        const state = get();
+        const trackClips = state.clips
+            .filter(c => c.trackIndex === trackIndex)
+            .sort((a, b) => a.startTime - b.startTime);
+
+        let offset = 0;
+        const newClips = state.clips.map(c => {
+            if (c.trackIndex !== trackIndex) return c;
+            const newStart = offset;
+            offset += c.duration;
+            return { ...c, startTime: newStart };
+        });
+
+        set({
+            clips: newClips,
+            duration: computeDuration(newClips),
+            undoStack: [...state.undoStack.slice(-MAX_UNDO + 1), { clips: JSON.parse(JSON.stringify(state.clips)), tracks: JSON.parse(JSON.stringify(state.tracks)) }],
+            redoStack: [],
+            canUndo: true,
+            canRedo: false,
+        });
+    },
+
+    // === NUDGE (from OpenShot) ===
+    nudgeClip: (clipId, deltaFrames, fps = 30) => {
+        const state = get();
+        const clip = state.clips.find(c => c.id === clipId);
+        if (!clip) return;
+        const deltaTime = deltaFrames / fps;
+        const newStart = Math.max(0, clip.startTime + deltaTime);
+        set({
+            clips: state.clips.map(c => c.id === clipId ? { ...c, startTime: newStart } : c),
+            duration: computeDuration(state.clips.map(c => c.id === clipId ? { ...c, startTime: newStart } : c)),
+        });
+    },
+
+    // === SAVE UNDO SNAPSHOT ===
+    saveUndo: () => {
+        const state = get();
+        set({
+            undoStack: [...state.undoStack.slice(-MAX_UNDO + 1), { clips: JSON.parse(JSON.stringify(state.clips)), tracks: JSON.parse(JSON.stringify(state.tracks)) }],
+            redoStack: [],
+            canUndo: true,
+            canRedo: false,
+        });
+    },
+
     addClip: (trackIndex, clipData) => {
         const state = get();
         const clip = createClip({ trackIndex, ...clipData });

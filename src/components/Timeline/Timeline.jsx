@@ -722,6 +722,34 @@ export const Timeline = ({
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
                     <span>Speed</span>
                 </button>
+                <div className="tl-toolbar-divider" />
+                <button className="tl-toolbar-btn" onClick={() => selectedClipId && useTimelineStore.getState().fadeIn(selectedClipId, 1)} disabled={!selectedClipId} title="Fade In (1s)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="2 12 8 6 14 18 20 12"/></svg>
+                    <span>Fade In</span>
+                </button>
+                <button className="tl-toolbar-btn" onClick={() => selectedClipId && useTimelineStore.getState().fadeOut(selectedClipId, 1)} disabled={!selectedClipId} title="Fade Out (1s)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="2 12 8 18 14 6 20 12"/></svg>
+                    <span>Fade Out</span>
+                </button>
+                <button className="tl-toolbar-btn" onClick={() => selectedClipId && useTimelineStore.getState().rotateClip(selectedClipId, 90)} disabled={!selectedClipId} title="Rotate 90°">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                    <span>Rotate</span>
+                </button>
+                <div className="tl-toolbar-divider" />
+                <button className="tl-toolbar-btn" onClick={() => useTimelineStore.getState().sliceAllAtPlayhead('keepBoth')} title="Slice All at Playhead (A)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+                    <span>Slice All</span>
+                </button>
+                <button className="tl-toolbar-btn" onClick={() => {
+                    const store = useTimelineStore.getState();
+                    if (selectedClipId) {
+                        const clip = store.clips.find(c => c.id === selectedClipId);
+                        if (clip) store.removeAllGaps(clip.trackIndex);
+                    }
+                }} disabled={!selectedClipId} title="Remove All Gaps">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                    <span>Remove Gap</span>
+                </button>
                 <div className="tl-toolbar-spacer" />
                 <button className="tl-toolbar-btn" onClick={() => useTimelineStore.getState().undo()} title="Undo - Ctrl+Z">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
