@@ -69,7 +69,7 @@ export const EditMode = () => {
     useEffect(() => {
         const tl = timelineRef.current;
         if (!tl || projectId) return; // skip if loading a server project
-        const serverVideoUrl = location.state?.serverVideoUrl;
+            const serverVideoUrl = location.state?.serverVideoUrl;
         if (serverVideoUrl) {
             tl.addClip(0, {
                 sourceUrl: serverVideoUrl,
@@ -77,14 +77,6 @@ export const EditMode = () => {
                 sourceEnd: 30,
                 label: 'Recording',
                 type: 'video',
-            });
-            tl.addClip(4, {
-                sourceUrl: serverVideoUrl,
-                duration: 30,
-                sourceEnd: 30,
-                label: 'Recording (audio)',
-                type: 'audio',
-                color: '#10b981',
             });
         } else {
             const rec = recordingStore.get();
@@ -95,14 +87,6 @@ export const EditMode = () => {
                     sourceEnd: 10,
                     label: rec.name || 'Recording',
                     type: 'video',
-                });
-                tl.addClip(4, {
-                    sourceUrl: rec.url,
-                    duration: 10,
-                    sourceEnd: 10,
-                    label: (rec.name || 'Recording') + ' (audio)',
-                    type: 'audio',
-                    color: '#10b981',
                 });
                 recordingStore.clear();
             }
@@ -280,14 +264,6 @@ export const EditMode = () => {
                                 label: baseName,
                                 type: 'video',
                             });
-                            timeline.addClip(4, {
-                                sourceUrl: proxyUrl,
-                                duration: result.duration || 10,
-                                sourceEnd: result.duration || 10,
-                                label: baseName + ' (audio)',
-                                type: 'audio',
-                                color: '#10b981',
-                            });
                             setUploadQueue(prev => prev.map(f => f.id === fileId ? { ...f, status: 'done' } : f));
                             setTimeout(() => setUploadQueue(prev => prev.filter(f => f.id !== fileId)), 2000);
                         })
@@ -308,28 +284,12 @@ export const EditMode = () => {
                     const dur = video.duration || 10;
                     const baseName = file.name.replace(/\.[^/.]+$/, '');
                     const isAudio = file.type?.startsWith('audio');
-                    if (isAudio) {
-                        // Audio-only → goes on Audio track
-                        timeline.addClip(4, {
-                            sourceUrl: url, duration: dur, sourceEnd: dur,
-                            label: baseName,
-                            type: 'audio',
-                            color: '#10b981',
-                        });
-                    } else {
-                        // Video → linked video clip on track 0 + audio clip on Audio track
-                        timeline.addClip(0, {
-                            sourceUrl: url, duration: dur, sourceEnd: dur,
-                            label: baseName,
-                            type: 'video',
-                        });
-                        timeline.addClip(4, {
-                            sourceUrl: url, duration: dur, sourceEnd: dur,
-                            label: baseName + ' (audio)',
-                            type: 'audio',
-                            color: '#10b981',
-                        });
-                    }
+                    // Single unified track for all clips
+                    timeline.addClip(0, {
+                        sourceUrl: url, duration: dur, sourceEnd: dur,
+                        label: baseName,
+                        type: isAudio ? 'audio' : 'video',
+                    });
                     video.removeAttribute('src'); video.load();
                     setUploadQueue(prev => prev.map(f => f.id === fileId ? { ...f, status: 'done' } : f));
                     setTimeout(() => setUploadQueue(prev => prev.filter(f => f.id !== fileId)), 2000);

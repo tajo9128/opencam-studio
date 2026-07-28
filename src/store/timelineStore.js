@@ -32,15 +32,7 @@ const computeDuration = (clips) => {
 export const useTimelineStore = create((set, get) => ({
     clips: [],
     tracks: [
-        { id: 'track_0', name: 'Video 1', type: 'video', muted: false, locked: false, visible: true },
-        { id: 'track_1', name: 'Video 2', type: 'video', muted: false, locked: false, visible: true },
-        { id: 'track_2', name: 'Screen', type: 'video', muted: false, locked: false, visible: true },
-        { id: 'track_3', name: 'Webcam', type: 'video', muted: false, locked: false, visible: true },
-        { id: 'track_4', name: 'Audio', type: 'audio', muted: false, locked: false, visible: true },
-        { id: 'track_zoom', name: 'Zoom-n-Pan', type: 'zoom-pan', muted: false, locked: false, visible: true },
-        { id: 'track_cursor', name: 'Cursor', type: 'cursor', muted: false, locked: false, visible: true },
-        { id: 'track_annotations', name: 'Annotations', type: 'annotations', muted: false, locked: false, visible: true },
-        { id: 'track_animations', name: 'Animations', type: 'animations', muted: false, locked: false, visible: true },
+        { id: 'track_0', name: 'Timeline', type: 'video', muted: false, locked: false, visible: true },
     ],
     currentTime: 0,
     duration: 0,

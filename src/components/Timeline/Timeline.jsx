@@ -420,24 +420,28 @@ export const Timeline = ({
                     {tracks.map((track, _i) => (
                         <div key={track.id} className="tl-track-header" style={{ height: TRACK_HEIGHT }}>
                             <span className="tl-track-name">{track.name}</span>
-                            <div className="tl-track-controls">
-                                <button className={`tl-btn ${track.muted ? 'tl-btn-muted' : ''}`}
-                                    onClick={() => useTimelineStore.getState().toggleTrackMute(track.id)} title="Mute"
-                                    aria-pressed={!!track.muted} aria-label={`Mute track ${track.id}`}>M</button>
-                                <button className={`tl-btn ${track.locked ? 'tl-btn-locked' : ''}`}
-                                    onClick={() => useTimelineStore.getState().toggleTrackLock(track.id)} title="Lock"
-                                    aria-pressed={!!track.locked} aria-label={`Lock track ${track.id}`}>L</button>
-                                {tracks.length > 1 && (
-                                    <button className="tl-btn tl-btn-remove"
-                                        onClick={() => useTimelineStore.getState().removeTrack(track.id)}
-                                        title="Remove Track">-</button>
-                                )}
-                            </div>
+                            {mode === 'advanced' && (
+                                <div className="tl-track-controls">
+                                    <button className={`tl-btn ${track.muted ? 'tl-btn-muted' : ''}`}
+                                        onClick={() => useTimelineStore.getState().toggleTrackMute(track.id)} title="Mute"
+                                        aria-pressed={!!track.muted} aria-label={`Mute track ${track.id}`}>M</button>
+                                    <button className={`tl-btn ${track.locked ? 'tl-btn-locked' : ''}`}
+                                        onClick={() => useTimelineStore.getState().toggleTrackLock(track.id)} title="Lock"
+                                        aria-pressed={!!track.locked} aria-label={`Lock track ${track.id}`}>L</button>
+                                    {tracks.length > 1 && (
+                                        <button className="tl-btn tl-btn-remove"
+                                            onClick={() => useTimelineStore.getState().removeTrack(track.id)}
+                                            title="Remove Track">-</button>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     ))}
-                    <div className="tl-add-track" onClick={() => useTimelineStore.getState().addTrack()}>
-                        <span>+ Track</span>
-                    </div>
+                    {mode === 'advanced' && (
+                        <div className="tl-add-track" onClick={() => useTimelineStore.getState().addTrack()}>
+                            <span>+ Track</span>
+                        </div>
+                    )}
                 </div>
 
                 <div className="tl-scroll" ref={scrollRef} onClick={handleTimelineClick}
@@ -538,7 +542,8 @@ export const Timeline = ({
                         })()}
                     </div>
 
-                    {/* Screencast tracks */}
+                    {/* Screencast tracks - Advanced mode only */}
+                    {mode === 'advanced' && (
                     <div className="tl-screencast-tracks" style={{ width: totalWidth }}>
                         {tracks.filter(t => t.type === 'zoom-pan').map(track => (
                             <ZoomPanTrack
@@ -585,6 +590,7 @@ export const Timeline = ({
                             />
                         ))}
                     </div>
+                    )}
 
                     <TransitionHandles
                         clips={clips}
