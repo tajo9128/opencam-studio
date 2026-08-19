@@ -127,7 +127,7 @@ const ScreenRecorder = () => {
         } catch { }
     }, [showToast]);
 
-    const handleRecordingComplete = useCallback((blob, mimeType) => {
+    const handleRecordingComplete = useCallback(async (blob, mimeType) => {
         if (!blob) {
             showToast('Recording Failed', 'No video data was captured.', 'error');
             return;
@@ -139,13 +139,32 @@ const ScreenRecorder = () => {
                 data: telemetry.serialize(),
             });
         }
+
+        // Immediately auto-save to authorized folder
+        if (directoryHandle && isHandleAuthorized) {
+            const ext = mimeType && mimeType.includes('mp4') ? '.mp4' : '.webm';
+            const autoName = `recording-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)}${ext}`;
+            try {
+                const fileHandle = await directoryHandle.getFileHandle(autoName, { create: true });
+                const writable = await fileHandle.createWritable();
+                await writable.write(blob);
+                await writable.close();
+                await syncLibrary(directoryHandle);
+                showToast(`Saved to ${directoryHandle.name}`, autoName, 'success');
+                setHighlightedFile(autoName);
+                generateThumbnail(blob, autoName, directoryHandle).then(() => syncLibrary(directoryHandle));
+            } catch (err) {
+                console.warn('Auto-save to directory failed:', err);
+            }
+        }
+
         setPendingRecording({ blob, mimeType });
         serverRec.stop().then(result => {
             if (result) {
                 setPendingRecording(prev => prev ? { ...prev, serverVideoUrl: result.videoUrl, serverProxyUrl: result.proxyUrl } : prev);
             }
         }).catch(() => {});
-    }, [showToast, serverRec, stopTelemetry]);
+    }, [showToast, serverRec, stopTelemetry, directoryHandle, isHandleAuthorized, syncLibrary, generateThumbnail]);
 
     const {
         isRecording, isPaused, status: recStatus, startRecording: startMediaRecording, pauseRecording, resumeRecording, stopRecording, resetRecording

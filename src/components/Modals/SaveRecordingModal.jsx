@@ -66,105 +66,101 @@ const SaveRecordingModal = ({ blob, mimeType, serverVideoUrl, serverProxyUrl, se
     return (
         <div className="modal-overlay">
             <div className="modal-content" style={{ maxWidth: '450px', padding: '2.5rem' }}>
-                {serverProcessing && !hasServerUrl ? (
-                    <>
-                        <h2 style={{ marginBottom: '1rem', fontSize: '1.75rem', fontWeight: 800 }}>Processing... 🔄</h2>
-                        <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', lineHeight: '1.5' }}>
-                            Server is converting your recording to MP4 and generating a proxy for editing.
-                            This may take a few moments for large files.
-                        </p>
-                        <div className="processing-indicator" style={{
-                            width: '100%', height: '8px', background: 'var(--glass)',
-                            borderRadius: '4px', overflow: 'hidden', marginBottom: '1rem'
-                        }}>
-                            <div style={{
-                                width: '40%', height: '100%',
-                                background: 'var(--primary)',
-                                borderRadius: '4px',
-                                animation: 'shimmer 1.5s ease-in-out infinite',
-                            }} />
-                        </div>
-                    </>
-                ) : (
-                    <>
-                        <h2 style={{ marginBottom: '1rem', fontSize: '1.75rem', fontWeight: 800 }}>Save Recording? 🎥</h2>
-                        <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', lineHeight: '1.5' }}>
-                            {hasServerUrl
-                                ? 'Recording saved to server. Ready to edit or download.'
-                                : 'Give it a name before we save it to your workspace.'}
-                        </p>
+                <h2 style={{ marginBottom: '0.75rem', fontSize: '1.75rem', fontWeight: 800 }}>Save Recording? 🎥</h2>
+                <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: '1.5', fontSize: '0.95rem' }}>
+                    {hasServerUrl
+                        ? 'Recording saved to server. Ready to edit or download.'
+                        : 'Give it a name to save it to your workspace or PC.'}
+                </p>
 
-                        <div className="input-group" style={{ marginBottom: '2.5rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)' }}>
-                                File Name
-                            </label>
-                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                                <input
-                                    type="text"
-                                    value={fileName}
-                                    onChange={(e) => setFileName(e.target.value)}
-                                    placeholder="my-awesome-video"
-                                    autoFocus
-                                    style={{
-                                        width: '100%',
-                                        padding: '1rem 1.25rem',
-                                        background: 'var(--glass)',
-                                        border: '1px solid var(--glass-border)',
-                                        borderRadius: '14px',
-                                        color: 'var(--text-main)',
-                                        fontSize: '1rem',
-                                        outline: 'none',
-                                        transition: 'all 0.2s'
-                                    }}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleConfirm()}
-                                />
-                                <span style={{
-                                    position: 'absolute',
-                                    right: '1.25rem',
-                                    color: 'var(--primary)',
-                                    fontWeight: 700,
-                                    pointerEvents: 'none',
-                                    opacity: 0.8
-                                }}>
-                                    {extension}
-                                </span>
-                            </div>
-                        </div>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
-                            {onEditNow && (
-                                <button className="btn btn-primary"
-                                    onClick={handleEditClick}
-                                    style={{ width: '100%', padding: '1rem', justifyContent: 'center', background: 'var(--primary)', borderColor: 'var(--primary)' }}>
-                                    ✂️ Edit Now
-                                </button>
-                            )}
-                            {onEditNow && (
-                                <button className="btn btn-primary"
-                                    onClick={handleSaveAndEdit}
-                                    disabled={!fileName.trim()}
-                                    style={{ width: '100%', padding: '1rem', justifyContent: 'center', background: '#10b981', borderColor: '#10b981' }}>
-                                    💾 Save & Edit
-                                </button>
-                            )}
-                            <button className="btn btn-outline"
-                                onClick={handleConfirm}
-                                disabled={!fileName.trim()}
-                                style={{ width: '100%', padding: '1rem', justifyContent: 'center' }}>
-                                💾 Save Only
-                            </button>
-                        </div>
-                    </>
+                {serverProcessing && !hasServerUrl && (
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.6rem',
+                        padding: '0.6rem 0.9rem',
+                        background: 'rgba(139, 92, 246, 0.1)',
+                        border: '1px solid rgba(139, 92, 246, 0.25)',
+                        borderRadius: '12px',
+                        fontSize: '0.82rem',
+                        color: 'var(--text-muted)',
+                        marginBottom: '1.5rem'
+                    }}>
+                        <span style={{ fontSize: '1rem' }}>🔄</span>
+                        <span>Optimizing video & proxy for editor in background...</span>
+                    </div>
                 )}
-                <div style={{ display: 'flex', gap: '1rem', width: '100%', marginTop: '0.75rem' }}>
-                    <button className="btn btn-outline" onClick={onDiscard}
-                        style={{ flex: 1, padding: '0.75rem', justifyContent: 'center' }}>
-                        {serverProcessing && !hasServerUrl ? 'Cancel' : 'Discard'}
+
+                <div className="input-group" style={{ marginBottom: '2rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                        File Name
+                    </label>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <input
+                            type="text"
+                            value={fileName}
+                            onChange={(e) => setFileName(e.target.value)}
+                            placeholder="my-awesome-video"
+                            autoFocus
+                            style={{
+                                width: '100%',
+                                padding: '0.9rem 1.25rem',
+                                background: 'var(--glass)',
+                                border: '1px solid var(--glass-border)',
+                                borderRadius: '14px',
+                                color: 'var(--text-main)',
+                                fontSize: '1rem',
+                                outline: 'none',
+                                transition: 'all 0.2s'
+                            }}
+                            onKeyDown={(e) => e.key === 'Enter' && handleConfirm()}
+                        />
+                        <span style={{
+                            position: 'absolute',
+                            right: '1.25rem',
+                            color: 'var(--primary)',
+                            fontWeight: 700,
+                            pointerEvents: 'none',
+                            opacity: 0.8
+                        }}>
+                            {extension}
+                        </span>
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
+                    <button className="btn btn-primary"
+                        onClick={handleConfirm}
+                        disabled={!fileName.trim()}
+                        style={{ width: '100%', padding: '0.9rem', justifyContent: 'center', background: '#10b981', borderColor: '#10b981', fontSize: '0.95rem', fontWeight: 600 }}>
+                        💾 Save to Folder / PC
                     </button>
-                    {!serverProcessing && onYouTube && (
+                    {onEditNow && (
+                        <button className="btn btn-primary"
+                            onClick={handleSaveAndEdit}
+                            disabled={!fileName.trim()}
+                            style={{ width: '100%', padding: '0.9rem', justifyContent: 'center', background: 'var(--primary)', borderColor: 'var(--primary)', fontSize: '0.95rem' }}>
+                            💾 Save & Open in Editor
+                        </button>
+                    )}
+                    {onEditNow && (
+                        <button className="btn btn-outline"
+                            onClick={handleEditClick}
+                            style={{ width: '100%', padding: '0.85rem', justifyContent: 'center' }}>
+                            ✂️ Edit Directly
+                        </button>
+                    )}
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.75rem', width: '100%', marginTop: '1rem' }}>
+                    <button className="btn btn-outline" onClick={onDiscard}
+                        style={{ flex: 1, padding: '0.7rem', justifyContent: 'center' }}>
+                        Discard
+                    </button>
+                    {onYouTube && (
                         <button className="btn btn-outline"
                             onClick={() => { handleConfirm(); onYouTube(); }}
-                            style={{ flex: 1, padding: '0.75rem', justifyContent: 'center' }}>
+                            style={{ flex: 1, padding: '0.7rem', justifyContent: 'center' }}>
                             📺 YouTube
                         </button>
                     )}
