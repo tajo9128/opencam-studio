@@ -62,6 +62,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
 RUN addgroup -S opencam && adduser -S opencam -G opencam
 RUN chown -R opencam:opencam /app /videos /proxies /projects /output /recordings /var/lib/nginx /var/log/nginx /etc/nginx/conf.d /tmp
 RUN chmod 755 /var/log/nginx
-USER opencam
 
 CMD ["/app/start.sh"]
