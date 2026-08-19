@@ -414,18 +414,19 @@ export const useTimelineStore = create((set, get) => ({
 
     removeAllGaps: (trackIndex) => {
         const state = get();
+        const otherClips = state.clips.filter(c => c.trackIndex !== trackIndex);
         const trackClips = state.clips
             .filter(c => c.trackIndex === trackIndex)
             .sort((a, b) => a.startTime - b.startTime);
 
         let offset = 0;
-        const newClips = state.clips.map(c => {
-            if (c.trackIndex !== trackIndex) return c;
+        const updatedTrackClips = trackClips.map(c => {
             const newStart = offset;
             offset += c.duration;
             return { ...c, startTime: newStart };
         });
 
+        const newClips = [...otherClips, ...updatedTrackClips];
         set({
             clips: newClips,
             duration: computeDuration(newClips),
@@ -890,41 +891,7 @@ export const useTimelineStore = create((set, get) => ({
         }));
     },
 
-    undo: () => {
-        const state = get();
-        if (state.undoStack.length === 0 || state._isUndoRedo) return;
-        const snapshot = state.undoStack[state.undoStack.length - 1];
-        const newUndo = state.undoStack.slice(0, -1);
-        set({ _isUndoRedo: true });
-        set({
-            clips: snapshot.clips,
-            tracks: snapshot.tracks,
-            duration: computeDuration(snapshot.clips),
-            undoStack: newUndo,
-            redoStack: [...state.redoStack, { clips: JSON.parse(JSON.stringify(state.clips)), tracks: JSON.parse(JSON.stringify(state.tracks)) }],
-            canUndo: newUndo.length > 0,
-            canRedo: true,
-            _isUndoRedo: false,
-        });
-    },
 
-    redo: () => {
-        const state = get();
-        if (state.redoStack.length === 0 || state._isUndoRedo) return;
-        const snapshot = state.redoStack[state.redoStack.length - 1];
-        const newRedo = state.redoStack.slice(0, -1);
-        set({ _isUndoRedo: true });
-        set({
-            clips: snapshot.clips,
-            tracks: snapshot.tracks,
-            duration: computeDuration(snapshot.clips),
-            redoStack: newRedo,
-            undoStack: [...state.undoStack, { clips: JSON.parse(JSON.stringify(state.clips)), tracks: JSON.parse(JSON.stringify(state.tracks)) }],
-            canUndo: true,
-            canRedo: newRedo.length > 0,
-            _isUndoRedo: false,
-        });
-    },
 
     addKeyframe: (clipId, paramKey, time, value, interpolation = 'linear') => {
         const state = get();

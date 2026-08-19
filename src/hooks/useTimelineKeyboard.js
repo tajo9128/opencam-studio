@@ -19,7 +19,7 @@ export const useTimelineKeyboard = ({
                 trimEndToPlayhead, addMarker, undo, redo, setCurrentTime,
                 currentTime, duration, setZoom,
                 sliceAtPlayhead, copyClip, pasteClip, cutClip, rippleDelete,
-                sliceAllAtPlayhead, nudgeClip, fadeIn, fadeOut, removeFade } = store;
+                sliceAllAtPlayhead, nudgeClip, fadeInOut, removeFade } = store;
 
         // Space: play/pause
         if (e.code === 'Space') {
