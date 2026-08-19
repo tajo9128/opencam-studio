@@ -1,22 +1,38 @@
 import { useState, useCallback } from 'react';
+import { getVideoDuration } from '../utils/mediaUtils';
 
 export const useClipBin = () => {
     const [clips, setClips] = useState([]);
 
-    const addClip = useCallback((file) => {
+    const addClip = useCallback(async (file) => {
         const url = URL.createObjectURL(file);
+        const duration = await getVideoDuration(file);
+        const durationStr = duration ? `${Math.floor(duration / 60)}:${String(Math.floor(duration % 60)).padStart(2, '0')}` : '0:00';
         const video = document.createElement('video');
         video.preload = 'metadata';
         video.onloadedmetadata = () => {
-            const duration = video.duration || 0;
-            const durationStr = duration ? `${Math.floor(duration / 60)}:${String(Math.floor(duration % 60)).padStart(2, '0')}` : '?';
             setClips(prev => [...prev, {
                 id: `bin_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
                 name: file.name,
                 url,
                 duration,
                 durationStr,
-                resolution: `${video.videoWidth || '?'}x${video.videoHeight || '?'}`,
+                resolution: `${video.videoWidth || 1920}x${video.videoHeight || 1080}`,
+                size: file.size,
+                type: file.type || 'video',
+                file,
+            }]);
+            video.removeAttribute('src');
+            video.load();
+        };
+        video.onerror = () => {
+            setClips(prev => [...prev, {
+                id: `bin_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                name: file.name,
+                url,
+                duration,
+                durationStr,
+                resolution: '1920x1080',
                 size: file.size,
                 type: file.type || 'video',
                 file,

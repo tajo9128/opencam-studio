@@ -410,20 +410,27 @@ function runFfmpeg(args, timeoutMs = 600000) {
 }
 
 function getMediaDuration(filePath) {
-    return new Promise((resolve, reject) => {
-        const proc = spawn('ffprobe', [
-            '-v', 'error',
-            '-show_entries', 'format=duration',
-            '-of', 'csv=p=0',
-            filePath,
-        ]);
-        let out = '';
-        proc.stdout.on('data', d => out += d.toString());
-        proc.on('close', code => {
-            if (code === 0) resolve(parseFloat(out.trim()) || 0);
-            else reject(new Error('ffprobe failed'));
-        });
-        proc.on('error', reject);
+    return new Promise((resolve) => {
+        try {
+            const proc = spawn('ffprobe', [
+                '-v', 'error',
+                '-show_entries', 'format=duration',
+                '-of', 'csv=p=0',
+                filePath,
+            ]);
+            let out = '';
+            proc.stdout.on('data', d => out += d.toString());
+            proc.on('close', code => {
+                if (code === 0 && parseFloat(out.trim()) > 0) {
+                    resolve(parseFloat(out.trim()));
+                } else {
+                    resolve(0);
+                }
+            });
+            proc.on('error', () => resolve(0));
+        } catch {
+            resolve(0);
+        }
     });
 }
 

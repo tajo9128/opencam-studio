@@ -24,6 +24,7 @@ import { CursorEffectPanel } from '../Timeline/CursorEffectPanel';
 import { recordingStore } from '../../utils/RecordingStore';
 import { CursorTelemetry } from '../../utils/CursorTelemetry';
 import { useTimelineStore } from '../../store/timelineStore';
+import { getVideoDuration } from '../../utils/mediaUtils';
 import './EditMode.css';
 
 export const EditMode = () => {
@@ -69,26 +70,30 @@ export const EditMode = () => {
     useEffect(() => {
         const tl = timelineRef.current;
         if (!tl || projectId) return; // skip if loading a server project
-            const serverVideoUrl = location.state?.serverVideoUrl;
+        const serverVideoUrl = location.state?.serverVideoUrl;
         if (serverVideoUrl) {
-            tl.addClip(0, {
-                sourceUrl: serverVideoUrl,
-                duration: 30,
-                sourceEnd: 30,
-                label: 'Recording',
-                type: 'video',
+            getVideoDuration(serverVideoUrl).then(dur => {
+                tl.addClip(0, {
+                    sourceUrl: serverVideoUrl,
+                    duration: dur,
+                    sourceEnd: dur,
+                    label: 'Recording',
+                    type: 'video',
+                });
             });
         } else {
             const rec = recordingStore.get();
             if (rec?.url && rec.blob) {
-                tl.addClip(0, {
-                    sourceUrl: rec.url,
-                    duration: 10,
-                    sourceEnd: 10,
-                    label: rec.name || 'Recording',
-                    type: 'video',
+                getVideoDuration(rec.blob).then(dur => {
+                    tl.addClip(0, {
+                        sourceUrl: rec.url,
+                        duration: dur,
+                        sourceEnd: dur,
+                        label: rec.name || 'Recording',
+                        type: 'video',
+                    });
+                    recordingStore.clear();
                 });
-                recordingStore.clear();
             }
         }
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -226,10 +231,14 @@ export const EditMode = () => {
     const SERVER_UPLOAD_THRESHOLD = 100 * 1024 * 1024; // 100MB — above this, upload to Docker for proxy generation
 
     const importFiles = useCallback((files) => {
-        Array.from(files).forEach(file => {
+        Array.from(files).forEach(async file => {
             const fileId = `${Date.now()}_${Math.random().toString(36).slice(2,6)}`;
             setUploadQueue(prev => [...prev, { id: fileId, name: file.name, size: file.size, status: 'loading' }]);
             try {
+                const dur = await getVideoDuration(file);
+                const baseName = file.name.replace(/\.[^/.]+$/, '');
+                const isAudio = file.type?.startsWith('audio');
+
                 if (file.size > SERVER_UPLOAD_THRESHOLD) {
                     // Large file — upload to server, edit from 480p proxy (supports 10GB+)
                     const formData = new FormData();
@@ -256,11 +265,11 @@ export const EditMode = () => {
                         .then(result => {
                             if (!result.clipId) throw new Error('Upload failed');
                             const proxyUrl = result.proxyUrl || `/api/videos/${result.clipId}`;
-                            const baseName = (result.originalName || file.name).replace(/\.[^/.]+$/, '');
+                            const fileDur = (result.duration && Number.isFinite(result.duration) && result.duration > 0) ? result.duration : dur;
                             timeline.addClip(0, {
                                 sourceUrl: proxyUrl,
-                                duration: result.duration || 10,
-                                sourceEnd: result.duration || 10,
+                                duration: fileDur,
+                                sourceEnd: fileDur,
                                 label: baseName,
                                 type: 'video',
                             });
@@ -269,33 +278,31 @@ export const EditMode = () => {
                         })
                         .catch((err) => {
                             clearTimeout(timeoutId);
-                            const errorMsg = err.name === 'AbortError' 
-                                ? 'Upload timed out (30 min limit). Try a smaller file.' 
-                                : (err.message || 'server upload failed');
-                            setUploadQueue(prev => prev.map(f => f.id === fileId ? { ...f, status: 'error', error: errorMsg } : f));
+                            // Fallback to local blob URL if server upload fails
+                            const url = URL.createObjectURL(file);
+                            timeline.addClip(0, {
+                                sourceUrl: url,
+                                duration: dur,
+                                sourceEnd: dur,
+                                label: baseName,
+                                type: isAudio ? 'audio' : 'video',
+                            });
+                            setUploadQueue(prev => prev.map(f => f.id === fileId ? { ...f, status: 'done' } : f));
+                            setTimeout(() => setUploadQueue(prev => prev.filter(f => f.id !== fileId)), 2000);
                         });
                     return;
                 }
-                // Small file — use blob URL (fast, local)
+                // Standard local file — instant blob URL
                 const url = URL.createObjectURL(file);
-                const video = document.createElement('video');
-                video.preload = 'metadata';
-                video.onloadedmetadata = () => {
-                    const dur = video.duration || 10;
-                    const baseName = file.name.replace(/\.[^/.]+$/, '');
-                    const isAudio = file.type?.startsWith('audio');
-                    // Single unified track for all clips
-                    timeline.addClip(0, {
-                        sourceUrl: url, duration: dur, sourceEnd: dur,
-                        label: baseName,
-                        type: isAudio ? 'audio' : 'video',
-                    });
-                    video.removeAttribute('src'); video.load();
-                    setUploadQueue(prev => prev.map(f => f.id === fileId ? { ...f, status: 'done' } : f));
-                    setTimeout(() => setUploadQueue(prev => prev.filter(f => f.id !== fileId)), 2000);
-                };
-                video.onerror = () => { URL.revokeObjectURL(url); setUploadQueue(prev => prev.map(f => f.id === fileId ? { ...f, status: 'error', error: 'unsupported' } : f)); };
-                video.src = url;
+                timeline.addClip(0, {
+                    sourceUrl: url,
+                    duration: dur,
+                    sourceEnd: dur,
+                    label: baseName,
+                    type: isAudio ? 'audio' : 'video',
+                });
+                setUploadQueue(prev => prev.map(f => f.id === fileId ? { ...f, status: 'done' } : f));
+                setTimeout(() => setUploadQueue(prev => prev.filter(f => f.id !== fileId)), 2000);
             } catch (e) {
                 setUploadQueue(prev => prev.map(f => f.id === fileId ? { ...f, status: 'error', error: e.message } : f));
             }
