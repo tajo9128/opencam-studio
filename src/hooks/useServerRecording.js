@@ -20,8 +20,10 @@ export const useServerRecording = () => {
             setSessionId(data.sessionId);
 
             const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${wsProtocol}//${window.location.host}${data.wsUrl}`;
-            const socket = new WebSocket(wsUrl + `?session=${data.sessionId}`);
+            const wsPath = data.wsUrl || '/ws/record';
+            const baseWsUrl = wsPath.startsWith('ws') ? wsPath : `${wsProtocol}//${window.location.host}${wsPath.split('?')[0]}`;
+            const separator = baseWsUrl.includes('?') ? '&' : '?';
+            const socket = new WebSocket(`${baseWsUrl}${separator}session=${data.sessionId}`);
             wsRef.current = socket;
 
             // Set binary type for large chunks

@@ -29,8 +29,15 @@ export const RecordMode = () => {
     const [zoomEnabled, setZoomEnabled] = useState(false);
     const [showWelcome, setShowWelcome] = useState(false);
 
-    const streams = useStreams();
-    const recording = useRecording();
+    const streams = useStreams(screenVideoRef, cameraVideoRef, () => {});
+    const recording = useRecording({
+        screenStream: streams.screenStream,
+        audioStream: streams.audioStream,
+        cameraStream: streams.cameraStream,
+        canvasRef,
+        recordingQuality,
+        bitrate: recordingQuality === '720p' ? 6000000 : recordingQuality === '2K' ? 20000000 : 12000000,
+    });
     const annotation = useAnnotation(canvasRef, annotationEnabled);
     const { drawCursorFx } = useCursorFx(canvasRef, cursorFxEnabled);
     const { applyZoom, restoreZoom } = useZoom(canvasRef, zoomEnabled);
@@ -103,7 +110,7 @@ export const RecordMode = () => {
                     recordingQuality={recordingQuality}
                     setRecordingQuality={setRecordingQuality}
                     qualityPresets={QUALITY_PRESETS}
-                    startRecording={() => recording.startRecording(canvasRef.current, QUALITY_PRESETS[recordingQuality])}
+                    startRecording={() => recording.startRecording()}
                     pauseRecording={recording.pauseRecording}
                     resumeRecording={recording.resumeRecording}
                     stopRecording={recording.stopRecording}

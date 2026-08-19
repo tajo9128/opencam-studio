@@ -13,6 +13,47 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/ollama/, ''),
       },
+      '/api/record': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+      },
+      '/api/video': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+      },
+      '/api/edit': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+      },
+      '/ws': {
+        target: 'ws://localhost:8081',
+        ws: true,
+        changeOrigin: true,
+      },
+      '/api/projects': {
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+      },
+      '/api/upload': {
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+      },
+      '/api/jobs': {
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+      },
+      '/api/videos': {
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+      },
+      '/api/thumbnails': {
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+      },
+      '/api/thumbnail': {
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+      },
     },
   },
 })

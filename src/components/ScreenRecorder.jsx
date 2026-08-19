@@ -473,11 +473,14 @@ const ScreenRecorder = () => {
 
     const handleStartRecording = useCallback(async () => {
         if (isRecording || countdown !== null) return;
-        // Wait for WebSocket to connect before starting recording
-        const sessionId = await serverRec.start();
-        if (!sessionId) {
-            showToast('Recording Error', 'Failed to connect to recording server', 'error');
-            return;
+        // Attempt to connect to recording server (optional hybrid mode)
+        try {
+            const sessionId = await serverRec.start();
+            if (sessionId) {
+                console.log('Recording session started on server:', sessionId);
+            }
+        } catch (err) {
+            console.warn('Server recording connection failed, falling back to local recording', err);
         }
         setCountdown(3);
         countdownTimerRef.current = setInterval(() => {
@@ -489,26 +492,39 @@ const ScreenRecorder = () => {
                 return prev - 1;
             });
         }, 1000);
-    }, [isRecording, countdown, startMediaRecording, serverRec, startTelemetry, showToast]);
+    }, [isRecording, countdown, startMediaRecording, serverRec, startTelemetry]);
 
     const startFlow = useCallback(async () => {
         if (isStartingRef.current || isRecording) return;
         isStartingRef.current = true; setIsStarting(true);
-        if (!screenStream && !cameraStream) { setIsStarting(false); isStartingRef.current = false; return; }
-        await handleStartRecording();
-        setIsStarting(false); isStartingRef.current = false;
-    }, [screenStream, cameraStream, isRecording, handleStartRecording]);
+        try {
+            if (!screenStream && !cameraStream) {
+                // If neither screen nor camera is active, prompt screen share
+                const stream = await toggleScreen();
+                if (!stream && !cameraStream) {
+                    showToast('No Source Selected', 'Please enable Screen or Camera to record', 'info');
+                    return;
+                }
+            }
+            await handleStartRecording();
+        } catch (e) {
+            console.error('Error starting recording:', e);
+            showToast('Recording Error', e.message || 'Could not start recording', 'error');
+        } finally {
+            setIsStarting(false); isStartingRef.current = false;
+        }
+    }, [screenStream, cameraStream, isRecording, handleStartRecording, toggleScreen, showToast]);
 
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-            if (e.code === 'Space') { e.preventDefault(); if (isRecording) stopRecording(); else if (countdown === null) handleStartRecording(); }
+            if (e.code === 'Space') { e.preventDefault(); if (isRecording) stopRecording(); else if (countdown === null) startFlow(); }
             else if (e.code === 'KeyP' && isRecording) { e.preventDefault(); if (isPaused) resumeRecording(); else pauseRecording(); }
             else if (e.code === 'Escape' && countdown !== null) { e.preventDefault(); if (countdownTimerRef.current) { clearInterval(countdownTimerRef.current); countdownTimerRef.current = null; } setCountdown(null); }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isRecording, isPaused, countdown, handleStartRecording, stopRecording, pauseRecording, resumeRecording]);
+    }, [isRecording, isPaused, countdown, startFlow, stopRecording, pauseRecording, resumeRecording]);
 
     return (
         <div className="recorder-container">
@@ -527,7 +543,8 @@ const ScreenRecorder = () => {
                 cameraStream={cameraStream} screenStream={screenStream} activeBg={activeBg} screenScale={screenScale}
                 isRecording={isRecording} status={recStatus} countdown={countdown} recordingQuality={recordingQuality}
                 currentDimensions={currentDimensions} handleMouseDown={handleMouseDown} handleMouseMove={handleMouseMove}
-                handleMouseUp={handleMouseUp} elapsedTime={formatTime(elapsedTime)} />
+                handleMouseUp={handleMouseUp} elapsedTime={formatTime(elapsedTime)}
+                onEnableScreen={toggleScreen} onEnableCamera={toggleCamera} />
 
             {annotationEnabled && (
                 <AnnotationToolbar tool={annotation.tool} setTool={annotation.setTool} color={annotation.color}
