@@ -5,10 +5,12 @@ import { ThemeProvider } from './context/ThemeContext.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import { AppShell } from './components/AppShell/AppShell';
 import ScreenRecorder from './components/ScreenRecorder';
-import { EditMode } from './components/EditMode/EditMode';
-import { StreamMode } from './components/Streaming/StreamMode';
-import { ExportMode } from './components/ExportMode/ExportMode';
-import { SettingsPage } from './components/Settings/SettingsPage';
+import { LoadingSpinner } from './components/LoadingSpinner';
+
+const EditorRoute = lazy(() => import('./components/EditMode/EditMode').then(m => ({ default: m.EditMode })));
+const StreamRoute = lazy(() => import('./components/Streaming/StreamMode').then(m => ({ default: m.StreamMode })));
+const ExportRoute = lazy(() => import('./components/ExportMode/ExportMode').then(m => ({ default: m.ExportMode })));
+const SettingsRoute = lazy(() => import('./components/Settings/SettingsPage').then(m => ({ default: m.SettingsPage })));
 import LandingPage from './components/LandingPage/LandingPage';
 import ProjectManager from './components/ProjectManager/ProjectManager';
 import './index.css';
@@ -18,18 +20,20 @@ function App() {
     <ErrorBoundary>
       <Router>
         <ThemeProvider>
-          <Routes>
+          <Suspense fallback={<LoadingSpinner />}>
+            <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/projects" element={<ProjectManager />} />
               <Route element={<AppShell />}>
                 <Route path="/recorder" element={<ScreenRecorder />} />
-                <Route path="/editor" element={<EditMode />} />
-                <Route path="/editor/:projectId" element={<EditMode />} />
-                <Route path="/stream" element={<StreamMode />} />
-                <Route path="/export" element={<ExportMode />} />
-                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/editor" element={<EditorRoute />} />
+                <Route path="/editor/:projectId" element={<EditorRoute />} />
+                <Route path="/stream" element={<StreamRoute />} />
+                <Route path="/export" element={<ExportRoute />} />
+                <Route path="/settings" element={<SettingsRoute />} />
               </Route>
             </Routes>
+          </Suspense>
             <Suspense fallback={null}><Analytics /></Suspense>
         </ThemeProvider>
       </Router>
