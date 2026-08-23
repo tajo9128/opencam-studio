@@ -1,7 +1,7 @@
-// Unit tests for server/mlt-xml.js — run: node server/__test-mlt.mjs
+// Unit tests for server/mlt-xml.js — run: npm test
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
-const { jsonToMlt } = require('./mlt-xml.js');
+const { jsonToMlt } = require('../server/mlt-xml.js');
 
 let pass = 0, fail = 0;
 function assert(cond, name, detail = '') {
