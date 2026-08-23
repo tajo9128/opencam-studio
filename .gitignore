@@ -36,3 +36,5 @@ spa-server.mjs
 .agent/
 
 graphify-out/
+
+.superpowers/

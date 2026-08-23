@@ -8,9 +8,11 @@ export const useLiveChat = () => {
     const channelIdRef = useRef(null);
 
     const pollYouTubeChat = useCallback(async (channelId) => {
+        const ytKey = localStorage.getItem('yt_api_key');
+        if (!ytKey) return; // no key configured - skip YouTube polling entirely
         try {
             const response = await fetch(
-                `https://www.googleapis.com/youtube/v3/liveChat/messages?part=snippet&liveChatId=${channelId}&key=YOUR_API_KEY`
+                `https://www.googleapis.com/youtube/v3/liveChat/messages?part=snippet&liveChatId=${channelId}&key=${ytKey}`
             );
             if (!response.ok) return;
             const data = await response.json();
@@ -35,11 +37,13 @@ export const useLiveChat = () => {
     }, []);
 
     const connectTwitch = useCallback((channelName, oauthToken) => {
+        const twitchNick = localStorage.getItem('twitch_nick');
+        if (!twitchNick) return null; // no nick configured - skip connecting
         const ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
 
         ws.onopen = () => {
             ws.send(`PASS oauth:${oauthToken || 'oauth:anonymous'}`);
-                ws.send(`NICK opencamstudio`);
+                ws.send(`NICK ${twitchNick}`);
             ws.send(`JOIN #${channelName.toLowerCase()}`);
             setConnected(true);
             setPlatform('twitch');
