@@ -42,8 +42,9 @@ export const useLiveChat = () => {
         const ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
 
         ws.onopen = () => {
+            const safeNick = String(twitchNick).replace(/[\r\n]/g, '');
             ws.send(`PASS oauth:${oauthToken || 'oauth:anonymous'}`);
-                ws.send(`NICK ${twitchNick}`);
+                ws.send(`NICK ${safeNick}`);
             ws.send(`JOIN #${channelName.toLowerCase()}`);
             setConnected(true);
             setPlatform('twitch');

@@ -46,6 +46,11 @@ class StorageManager {
         if (err.name === 'QuotaExceededError') reject(new Error('STORAGE_FULL'));
         else reject(err);
       };
+      transaction.onabort = () => {
+        const err = transaction.error || new Error('Transaction aborted');
+        if (err.name === 'QuotaExceededError') reject(new Error('STORAGE_FULL'));
+        else reject(err);
+      };
     });
   }
 

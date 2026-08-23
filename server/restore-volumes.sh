@@ -8,6 +8,6 @@ for VOL in videos proxies projects output recordings; do
     docker run --rm \
         -v "opencam-studio_${VOL}:/data" \
         -v "$(cd "$DIR" && pwd):/backup:ro" \
-        alpine sh -c "rm -rf /data/* && tar xzf /backup/${VOL}-${STAMP}.tar.gz -C /data"
+        alpine sh -c "find /data -mindepth 1 -delete && tar xzf /backup/${VOL}-${STAMP}.tar.gz -C /data"
 done
 echo "Restore complete. Restart the stack."
