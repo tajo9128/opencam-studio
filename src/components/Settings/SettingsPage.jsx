@@ -11,8 +11,7 @@ export const SettingsPage = () => {
     // AI — Paid API
     const [apiProvider, setApiProvider] = useState(() => localStorage.getItem('ai_provider') || 'openai');
     const [apiKey, setApiKeyState] = useState(() => localStorage.getItem('ai_api_key') || '');
-    const [apiEndpoint, setApiEndpoint] = useState(() => localStorage.getItem('ai_api_endpoint') || 'https://api.openai.com/v1/chat/completions');
-    const [apiModel, setApiModelState] = useState(() => localStorage.getItem('ai_model') || 'gpt-4o-mini');
+        const [apiModel, setApiModelState] = useState(() => localStorage.getItem('ai_model') || 'gpt-4o-mini');
 
     // Recording
     const [recQuality, setRecQuality] = useState(() => localStorage.getItem('rec_quality') || '1080p');
@@ -160,39 +159,31 @@ export const SettingsPage = () => {
 
                     {/* Paid API */}
                     <div className="settings-card">
-                        <h3>Paid API (OpenAI-Compatible)</h3>
-                        <p className="settings-desc">Use OpenAI, Anthropic, or any OpenAI-compatible API as fallback when Ollama is offline.</p>
+                        <h3>Cloud AI Provider</h3>
+                        <p className="settings-desc">
+                            Fallback when Ollama is offline. Requests go through the server's AI proxy —
+                            endpoints are pinned per provider, and a server-side key (env var) takes priority.
+                        </p>
                         <div className="settings-field">
                             <label>Provider</label>
-                            <div className="settings-option-row">
+                            <select className="settings-select" value={apiProvider}
+                                onChange={e => { setApiProvider(e.target.value); save('ai_provider', e.target.value); }}>
                                 {[
                                     { id: 'openai', label: 'OpenAI' },
                                     { id: 'anthropic', label: 'Anthropic' },
-                                    { id: 'custom', label: 'Custom' },
+                                    { id: 'groq', label: 'Groq' },
+                                    { id: 'together', label: 'Together AI' },
+                                    { id: 'openrouter', label: 'OpenRouter' },
                                 ].map(p => (
-                                    <button key={p.id} className={`settings-option-btn ${apiProvider === p.id ? 'active' : ''}`}
-                                        onClick={() => {
-                                            setApiProvider(p.id);
-                                            save('ai_provider', p.id);
-                                            if (p.id === 'openai') { setApiEndpoint('https://api.openai.com/v1/chat/completions'); save('ai_api_endpoint', 'https://api.openai.com/v1/chat/completions'); }
-                                            else if (p.id === 'anthropic') { setApiEndpoint('https://api.anthropic.com/v1/messages'); save('ai_api_endpoint', 'https://api.anthropic.com/v1/messages'); }
-                                        }}>
-                                        {p.label}
-                                    </button>
+                                    <option key={p.id} value={p.id}>{p.label}</option>
                                 ))}
-                            </div>
-                        </div>
-                        <div className="settings-field">
-                            <label>API Endpoint</label>
-                            <input className="settings-input" value={apiEndpoint}
-                                onChange={e => { setApiEndpoint(e.target.value); save('ai_api_endpoint', e.target.value); }}
-                                placeholder="https://api.openai.com/v1/chat/completions" />
+                            </select>
                         </div>
                         <div className="settings-field">
                             <label>API Key</label>
                             <input className="settings-input" type="password" value={apiKey}
                                 onChange={e => { setApiKeyState(e.target.value); save('ai_api_key', e.target.value); }}
-                                placeholder="sk-..." />
+                                placeholder="Leave empty if the server has a key configured" />
                         </div>
                         <div className="settings-field">
                             <label>Model</label>
@@ -240,3 +231,4 @@ export const SettingsPage = () => {
         </div>
     );
 };
+

@@ -41,7 +41,9 @@ export const GuestPage = () => {
         setStatus('connecting');
 
         try {
-            const ws = new WebSocket('ws://localhost:8083');
+            // Location-relative: works behind any host, not just localhost.
+            const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const ws = new WebSocket(`${proto}//${window.location.host}/signaling`);
             wsRef.current = ws;
 
             ws.onopen = () => {

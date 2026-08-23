@@ -12,6 +12,7 @@ export const useAI = () => {
     const [isStreaming, setIsStreaming] = useState(false);
     const [apiKey, setApiKeyState] = useState(() => localStorage.getItem('ai_api_key') || '');
     const [apiEndpoint, setApiEndpointState] = useState(() => localStorage.getItem('ai_api_endpoint') || 'https://api.openai.com/v1/chat/completions');
+    const [providerState, setProviderState] = useState(() => localStorage.getItem('ai_provider') || 'openai');
     const [model, setModelState] = useState(() => localStorage.getItem('ai_model') || 'gpt-4o-mini');
     const [ollamaConnected, setOllamaConnected] = useState(false);
     const [ollamaModel, setOllamaModelState] = useState(() => localStorage.getItem('ollama_model') || '');
@@ -24,6 +25,7 @@ export const useAI = () => {
 
     const setApiKey = useCallback((key) => { setApiKeyState(key); localStorage.setItem('ai_api_key', key); }, []);
     const setApiEndpoint = useCallback((url) => { setApiEndpointState(url); localStorage.setItem('ai_api_endpoint', url); }, []);
+    const setProvider = useCallback((p) => { setProviderState(p); localStorage.setItem('ai_provider', p); }, []);
     const setModel = useCallback((m) => { setModelState(m); localStorage.setItem('ai_model', m); }, []);
     const setOllamaModel = useCallback((m) => { setOllamaModelState(m); localStorage.setItem('ollama_model', m); }, []);
 
@@ -159,49 +161,61 @@ export const useAI = () => {
         } catch { return null; }
     }, [ollamaConnected, ollamaBase, ollamaModel]);
 
-    // Call external LLM API (OpenAI compatible) with streaming
-    const streamLLM = useCallback(async (input, recentMessages, onToken) => {
-        if (!apiKey) return null;
+    // Shared call through the server-side AI proxy. The browser never talks to
+    // LLM providers directly and never picks the endpoint - the server pins it
+    // per provider, closing the key-exfiltration vector.
+    const viaProxy = useCallback(async ({ input, recentMessages = [], stream = false, onToken } = {}) => {
+        const key = apiKey || localStorage.getItem('opencam_studio_api_key') || '';
+        const provider = providerState || localStorage.getItem('opencam_studio_api_provider') || 'openai';
         try {
             const llmMessages = recentMessages.map(m => ({ role: m.role, content: m.content }));
             llmMessages.push({ role: 'user', content: input });
-
-            const controller = new AbortController();
-            streamAbortRef.current = controller;
-
-            const response = await fetch(apiEndpoint, {
+            const res = await fetch('/api/ai/chat', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    provider,
                     model,
+                    apiKey: key || undefined,
+                    stream,
                     messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...llmMessages.slice(-8)],
-                    temperature: 0.1, max_tokens: 500,
-                    stream: true
                 }),
-                signal: controller.signal
             });
-            if (!response.ok) return null;
+            if (!res.ok) return null;
 
-            const reader = response.body.getReader();
+            if (!stream) {
+                const data = await res.json();
+                const content = data.choices?.[0]?.message?.content?.trim()
+                    || data.content?.[0]?.text?.trim();
+                if (!content) return null;
+                try { return JSON.parse(content); }
+                catch {
+                    const m = content.match(/\{"action"[\s\S]*\}/);
+                    if (m) { try { return JSON.parse(m[0]); } catch { /* fallthrough */ } }
+                    return { action: 'chat', message: content };
+                }
+            }
+
+            // SSE passthrough
+            const reader = res.body.getReader();
             const decoder = new TextDecoder();
             let fullContent = '';
             let lineBuffer = '';
-
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
                 lineBuffer += decoder.decode(value, { stream: true });
-                // OpenAI SSE format: data: {...}\n\n
                 const lines = lineBuffer.split('\n');
                 lineBuffer = lines.pop() || '';
                 for (const line of lines) {
                     const trimmed = line.trim();
                     if (!trimmed.startsWith('data: ')) continue;
-                    const json = trimmed.replace('data: ', '').trim();
+                    const json = trimmed.slice(6).trim();
                     if (json === '[DONE]') break;
                     try {
-                        const data = JSON.parse(json);
-                        const token = data.choices?.[0]?.delta?.content;
+                        const delta = JSON.parse(json);
+                        let token = delta.choices?.[0]?.delta?.content;
+                        if (!token && delta.type === 'content_block_delta') token = delta.delta?.text;
                         if (token) {
                             fullContent += token;
                             onToken?.(token);
@@ -209,125 +223,27 @@ export const useAI = () => {
                     } catch { /* skip */ }
                 }
             }
-
-            streamAbortRef.current = null;
             if (!fullContent.trim()) return null;
             try { return JSON.parse(fullContent); }
             catch {
-                const jsonMatch = fullContent.match(/\{"action"[\s\S]*\}/);
-                if (jsonMatch) { try { return JSON.parse(jsonMatch[0]); } catch { /* json parse fallback */ } }
+                const m = fullContent.match(/\{"action"[\s\S]*\}/);
+                if (m) { try { return JSON.parse(m[0]); } catch { /* fallthrough */ } }
                 return { action: 'chat', message: fullContent.trim() };
             }
         } catch { return null; }
-    }, [apiKey, apiEndpoint, model]);
+    }, [apiKey, model, providerState]);
 
-    // Non-streaming LLM fallback
+    // Streaming LLM (through proxy)
+    const streamLLM = useCallback(async (input, recentMessages, onToken) => {
+        if (!apiKey && !localStorage.getItem('opencam_studio_api_key')) return null;
+        return viaProxy({ stream: true, onToken });
+    }, [viaProxy, apiKey]);
+
+    // Non-streaming LLM fallback (through proxy)
     const callLLM = useCallback(async (input, recentMessages) => {
-        if (!apiKey) return null;
-        try {
-            const llmMessages = recentMessages.map(m => ({ role: m.role, content: m.content }));
-            llmMessages.push({ role: 'user', content: input });
-            const response = await fetch(apiEndpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-                body: JSON.stringify({
-                    model,
-                    messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...llmMessages.slice(-8)],
-                    temperature: 0.1, max_tokens: 500
-                })
-            });
-            if (!response.ok) return null;
-            const data = await response.json();
-            const content = data.choices?.[0]?.message?.content?.trim();
-            if (!content) return null;
-            try { return JSON.parse(content); }
-            catch {
-                const jsonMatch = content.match(/\{"action"[\s\S]*\}/);
-                if (jsonMatch) { try { return JSON.parse(jsonMatch[0]); } catch { /* json parse fallback */ } }
-                return { action: 'chat', message: content };
-            }
-        } catch { return null; }
-    }, [apiKey, apiEndpoint, model]);
-
-    // Paid API fallback using opencam_studio_api_key / opencam_studio_api_provider
-    const callPaidFallback = useCallback(async (input, recentMessages) => {
-        const fallbackKey = localStorage.getItem('opencam_studio_api_key');
-        const fallbackProvider = localStorage.getItem('opencam_studio_api_provider');
-        if (!fallbackKey) return null;
-
-        // Build endpoint from provider name
-        const providerEndpoints = {
-            openai: 'https://api.openai.com/v1/chat/completions',
-            anthropic: 'https://api.anthropic.com/v1/messages',
-            groq: 'https://api.groq.com/openai/v1/chat/completions',
-            together: 'https://api.together.xyz/v1/chat/completions',
-            openrouter: 'https://openrouter.ai/api/v1/chat/completions',
-        };
-        const provider = fallbackProvider || 'openai';
-        const endpoint = providerEndpoints[provider] || providerEndpoints.openai;
-        const isOpenAICompat = provider !== 'anthropic';
-
-        try {
-            const llmMessages = recentMessages.map(m => ({ role: m.role, content: m.content }));
-            llmMessages.push({ role: 'user', content: input });
-
-            const headers = { 'Content-Type': 'application/json' };
-            const modelNames = {
-                openai: 'gpt-4o-mini',
-                anthropic: 'claude-3-5-haiku-20241022',
-                groq: 'llama-3.3-70b-versatile',
-                together: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
-                openrouter: 'meta-llama/llama-3.1-8b-instruct',
-            };
-
-            let body;
-            if (isOpenAICompat) {
-                headers['Authorization'] = `Bearer ${fallbackKey}`;
-                body = JSON.stringify({
-                    model: modelNames[provider] || 'gpt-4o-mini',
-                    messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...llmMessages.slice(-8)],
-                    temperature: 0.1,
-                    max_tokens: 500
-                });
-            } else {
-                // Anthropic format
-                headers['x-api-key'] = fallbackKey;
-                headers['anthropic-version'] = '2023-06-01';
-                const systemMsg = SYSTEM_PROMPT;
-                const userMsgs = llmMessages.slice(-8);
-                body = JSON.stringify({
-                    model: modelNames[provider],
-                    max_tokens: 500,
-                    system: systemMsg,
-                    messages: userMsgs
-                });
-            }
-
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers,
-                body
-            });
-            if (!response.ok) return null;
-            const data = await response.json();
-
-            let content;
-            if (isOpenAICompat) {
-                content = data.choices?.[0]?.message?.content?.trim();
-            } else {
-                // Anthropic response format
-                content = data.content?.[0]?.text?.trim();
-            }
-
-            if (!content) return null;
-            try { return JSON.parse(content); }
-            catch {
-                const jsonMatch = content.match(/\{"action"[\s\S]*\}/);
-                if (jsonMatch) { try { return JSON.parse(jsonMatch[0]); } catch { /* json parse fallback */ } }
-                return { action: 'chat', message: content };
-            }
-        } catch { return null; }
-    }, []);
+        if (!apiKey && !localStorage.getItem('opencam_studio_api_key')) return null;
+        return viaProxy({ input, recentMessages, stream: false });
+    }, [viaProxy, apiKey]);
 
     const sendMessage = useCallback(async (input) => {
         if (!input.trim()) return null;
@@ -363,19 +279,15 @@ export const useAI = () => {
                     command = await streamOllama(input, recentMessages, onToken);
                 }
                 // Then try streaming from paid API
-                if (!command && apiKey) {
+                if (!command && (apiKey || localStorage.getItem('opencam_studio_api_key'))) {
                     command = await streamLLM(input, recentMessages, onToken);
                 }
                 // Fallback to non-streaming
                 if (!command && ollamaConnected) {
                     command = await callOllama(input, recentMessages);
                 }
-                if (!command && apiKey) {
+                if (!command && (apiKey || localStorage.getItem('opencam_studio_api_key'))) {
                     command = await callLLM(input, recentMessages);
-                }
-                // Last resort: paid API fallback via opencam_studio_api_key
-                if (!command) {
-                    command = await callPaidFallback(input, recentMessages);
                 }
 
                 // Remove the streaming placeholder if we got a structured command
@@ -467,7 +379,7 @@ export const useAI = () => {
             setIsProcessing(false);
             setIsStreaming(false);
         }
-    }, [messages, parseLocal, callOllama, callLLM, callPaidFallback, streamOllama, streamLLM, apiKey, ollamaConnected]);
+    }, [messages, parseLocal, callOllama, callLLM, streamOllama, streamLLM, apiKey, ollamaConnected]);
 
     // Voice input via Web Speech API
     const startListening = useCallback(() => {
@@ -530,7 +442,7 @@ export const useAI = () => {
     return {
         messages, isProcessing, isStreaming,
         sendMessage, clearMessages, stopStreaming,
-        apiKey, setApiKey, apiEndpoint, setApiEndpoint, model, setModel,
+        apiKey, setApiKey, provider: providerState, setProvider, model, setModel,
         ollamaConnected, ollamaModel, setOllamaModel, ollamaModels, checkOllama,
         voiceEnabled, setVoiceEnabled, isListening, startListening, stopListening,
     };

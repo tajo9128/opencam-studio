@@ -43,7 +43,8 @@ const upload = multer({
     dest: path.join(VIDEOS_DIR, '.uploads'),
     limits: { fileSize: 50 * 1024 * 1024 * 1024 }, // 50GB max
 });
-const jobQueue = new JobQueue();
+fs.mkdirSync(path.join(VIDEOS_DIR, '.uploads'), { recursive: true });
+const jobQueue = new JobQueue({ loadProject });
 
 // ---------- Project CRUD ----------
 
@@ -189,14 +190,6 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
                 size: req.file.size,
             });
         }
-
-        // Clean up the .uploads temp dir if empty
-        try {
-            const uploadsDir = path.join(VIDEOS_DIR, '.uploads');
-            if (fs.existsSync(uploadsDir) && fs.readdirSync(uploadsDir).length === 0) {
-                fs.rmdirSync(uploadsDir);
-            }
-        } catch { /* ignore */ }
     } catch (err) {
         console.error('[project-server] Upload error:', err);
         res.status(500).json({ error: err.message });
@@ -305,12 +298,14 @@ app.get('/api/projects/:id/export-mlt', (req, res) => {
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
     const project = JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
-    const clips = {};
-    for (const clip of (project.clips || [])) {
-        clips[clip.clipId] = clip;
-    }
-
-    const mltXml = jsonToMlt(project, clips);
+    const videos = (() => { try { return fs.readdirSync(VIDEOS_DIR); } catch { return []; } })();
+    const mltXml = jsonToMlt(project, {
+        resolveResource: (clipId) => {
+            const base = String(clipId).split('/')[0].replace(/\.[a-z0-9]+$/i, '');
+            const match = videos.find(f => f.startsWith(base + '.'));
+            return match ? `${VIDEOS_DIR}/${match}` : null;
+        },
+    });
     res.setHeader('Content-Type', 'application/xml');
     res.setHeader('Content-Disposition', `attachment; filename="${project.name}.mlt"`);
     res.send(mltXml);
@@ -322,11 +317,7 @@ function loadProject(id) {
     const filePath = safePath(PROJECTS_DIR, id, 'project.json');
     if (!filePath || !fs.existsSync(filePath)) return null;
     const project = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    const clips = {};
-    for (const clip of (project.clips || [])) {
-        clips[clip.clipId] = clip;
-    }
-    return { project, clips };
+    return { project };
 }
 
 app.post('/api/projects/:id/render', (req, res) => {
@@ -334,7 +325,7 @@ app.post('/api/projects/:id/render', (req, res) => {
     if (!data) return res.status(404).json({ error: 'Project not found' });
 
     const params = req.body || {};
-    const job = jobQueue.createJob(req.params.id, params, data.project, data.clips);
+    const job = jobQueue.createJob(req.params.id, params);
     res.json({
         id: job.id,
         projectId: job.projectId,
@@ -380,6 +371,114 @@ app.get('/api/jobs/:jobId/output', (req, res) => {
     }
     res.setHeader('Content-Disposition', 'attachment; filename="render.mp4"');
     serveFile(req, res, job.outputPath, 'video/mp4');
+});
+
+// ---------- AI LLM Proxy ----------
+// The browser never talks to LLM providers directly. Endpoints are pinned to a
+// provider allowlist here, and API keys are resolved server-side first (env
+// vars) so keys can live entirely outside the browser.
+
+const AI_PROVIDERS = {
+    openai:     { endpoint: 'https://api.openai.com/v1/chat/completions',      envKey: 'OPENAI_API_KEY',     style: 'openai' },
+    anthropic:  { endpoint: 'https://api.anthropic.com/v1/messages',           envKey: 'ANTHROPIC_API_KEY',  style: 'anthropic' },
+    groq:       { endpoint: 'https://api.groq.com/openai/v1/chat/completions', envKey: 'GROQ_API_KEY',       style: 'openai' },
+    together:   { endpoint: 'https://api.together.xyz/v1/chat/completions',    envKey: 'TOGETHER_API_KEY',   style: 'openai' },
+    openrouter: { endpoint: 'https://openrouter.ai/api/v1/chat/completions',   envKey: 'OPENROUTER_API_KEY', style: 'openai' },
+};
+
+app.post('/api/ai/chat', async (req, res) => {
+    try {
+        const { provider: rawProvider, model, messages, apiKey: clientKey, stream } = req.body || {};
+        const provider = AI_PROVIDERS[String(rawProvider || 'openai').toLowerCase()];
+        if (!provider) return res.status(400).json({ error: `Unknown provider. Allowed: ${Object.keys(AI_PROVIDERS).join(', ')}` });
+
+        // Prefer the server-configured key; fall back to a per-request client key
+        // that is used once in-memory and never persisted.
+        const apiKey = process.env[provider.envKey] || (typeof clientKey === 'string' ? clientKey.slice(0, 256) : '');
+        if (!apiKey) return res.status(401).json({ error: `No API key configured. Set ${provider.envKey} on the server or provide one in Settings.` });
+
+        if (!Array.isArray(messages) || messages.length === 0 || messages.length > 64) {
+            return res.status(400).json({ error: 'messages must be a non-empty array (max 64)' });
+        }
+        for (const m of messages) {
+            if (!m || typeof m.content !== 'string' || typeof m.role !== 'string' || m.content.length > 64 * 1024) {
+                return res.status(400).json({ error: 'Invalid message format' });
+            }
+        }
+        const rawModel = String(model || '');
+        const safeModel = /^[a-zA-Z0-9][a-zA-Z0-9._\/:\-]{0,127}$/.test(rawModel) && !rawModel.includes('..')
+            ? rawModel
+            : '';
+        if (!safeModel) return res.status(400).json({ error: 'model is required (alphanumeric, dot, slash, dash, colon)' });
+
+        let endpoint = provider.endpoint;
+        let headers = { 'Content-Type': 'application/json' };
+        let body;
+
+        if (provider.style === 'anthropic') {
+            headers['x-api-key'] = apiKey;
+            headers['anthropic-version'] = '2023-06-01';
+            const systemMsgs = messages.filter(m => m.role === 'system');
+            const chatMsgs = messages.filter(m => m.role !== 'system');
+            body = JSON.stringify({
+                model: safeModel,
+                max_tokens: 500,
+                system: systemMsgs.map(m => m.content).join('\n') || undefined,
+                messages: chatMsgs,
+            });
+        } else {
+            headers['Authorization'] = `Bearer ${apiKey}`;
+            if (provider === AI_PROVIDERS.openrouter) {
+                headers['HTTP-Referer'] = 'https://opencam-studio.app';
+                headers['X-Title'] = 'OpenCam Studio';
+            }
+            body = JSON.stringify({
+                model: safeModel,
+                messages,
+                temperature: 0.1,
+                max_tokens: 500,
+                ...(stream ? { stream: true } : {}),
+            });
+        }
+
+        const upstream = await fetch(endpoint, {
+            method: 'POST',
+            headers,
+            body,
+            signal: AbortSignal.timeout(120000),
+        });
+
+        if (!upstream.ok) {
+            const errText = await upstream.text().catch(() => '');
+            console.error(`[ai-proxy] ${rawProvider} ${upstream.status}: ${errText.slice(0, 200)}`);
+            return res.status(upstream.status === 401 || upstream.status === 403 ? 401 : 502)
+                .json({ error: `LLM provider error (${upstream.status})` });
+        }
+
+        if (stream && provider.style === 'openai') {
+            // Pipe SSE straight through.
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('Connection', 'keep-alive');
+            const reader = upstream.body.getReader();
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    res.write(Buffer.from(value));
+                }
+            } finally {
+                res.end();
+            }
+            return;
+        }
+
+        const data = await upstream.json();
+        res.json(data);
+    } catch (err) {
+        console.error('[ai-proxy] error:', err.message);
+        if (!res.headersSent) res.status(500).json({ error: 'AI proxy failure' });
+    }
 });
 
 // ---------- Helpers ----------

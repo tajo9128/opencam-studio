@@ -6,15 +6,26 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    pointer-events: none;
 }
 
 .onboarding-card {
+    pointer-events: auto;
     background: var(--nav-bg, #1a1a2e);
     border: 1px solid var(--glass-border, rgba(255,255,255,0.1));
     border-radius: 12px;
     padding: 24px 32px;
     max-width: 400px;
     text-align: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.onboarding-target-active {
+    position: relative !important;
+    z-index: 10000 !important;
+    outline: 3px solid var(--primary, #8b5cf6) !important;
+    outline-offset: 2px;
+    border-radius: 8px;
 }
 
 .onboarding-step {

@@ -13,6 +13,7 @@ import { useAI } from '../../hooks/useAI';
 import { useClipBin } from '../../hooks/useClipBin';
 import { useOverlays } from '../../hooks/useOverlays';
 import { useTimelineKeyboard } from '../../hooks/useTimelineKeyboard';
+import { FILTERS as FILTER_REGISTRY } from '../../utils/FilterEngine';
 import { ClipBin } from './ClipBin';
 import { ClipMonitor } from './ClipMonitor';
 import { Toast } from '../Notifications/Toast';
@@ -109,7 +110,11 @@ export const EditMode = () => {
                 setServerProject(p);
                 setServerClips(p.clips || []);
                 const tl = timelineRef.current;
-                if (p.timeline?.tracks?.length > 0 && tl) {
+                if (p.timeline?.version === 2 && tl) {
+                    // Full-fidelity restore: tracks, filters, keyframes, markers...
+                    useTimelineStore.getState().loadProjectState(p.timeline);
+                } else if (p.timeline?.tracks?.length > 0 && tl) {
+                    // Legacy fallback for projects saved by older versions.
                     const loadedClips = [];
                     for (const track of p.timeline.tracks) {
                         for (const clip of (track.clips || [])) {
@@ -152,28 +157,17 @@ export const EditMode = () => {
     // Auto-save timeline to server
     const saveTimeoutRef = useRef(null);
     useEffect(() => {
-        if (!projectId) return;
+        if (!projectId || projectLoading) return;
         clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = setTimeout(() => {
             const tl = timelineRef.current;
-            const tracks = tl.tracks.map(t => ({
-                id: t.id,
-                type: t.type,
-                clips: tl.clips.filter(c => c.trackIndex === tl.tracks.indexOf(t)).map(c => ({
-                    clipId: c.sourceUrl?.replace('/api/videos/', '') || c.label,
-                    sourceStart: c.sourceStart || 0,
-                    sourceEnd: c.sourceEnd || c.duration || 10,
-                    trackStart: c.startTime || 0,
-                    speed: c.speed || 1,
-                })),
-            }));
             fetch(`/api/projects/${projectId}/timeline`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tracks }),
+                body: JSON.stringify(useTimelineStore.getState().serializeProject()),
             }).catch(() => {});
         }, 2000);
-    }, [timeline.clips, timeline.tracks, projectId]);
+    }, [timeline.clips, timeline.tracks, projectId, projectLoading]);
 
     const selectedClip = timeline.clips.find(c => c.id === timeline.selectedClipId);
 
@@ -441,10 +435,40 @@ export const EditMode = () => {
         }
     }, [timeline]);
 
-    const handleAICommand = useCallback((command) => {
-        if (!command || !command.action) return;
+    // Whitelist of actions an AI command may trigger, and per-field validation.
+    // LLM output is untrusted input - it is regex-extracted from generated text
+    // and could contain injected payloads (multi-turn chat history is fed back
+    // to the model), so every field is validated/clamped before touching state.
+    const AI_ALLOWED_ACTIONS = new Set([
+        'split', 'delete_clip', 'duplicate_clip', 'set_speed', 'trim', 'trim_end',
+        'apply_filter', 'remove_filter', 'remove_all_filters', 'set_transition',
+        'add_keyframe', 'remove_keyframe', 'zoom', 'cursor_fx', 'annotate',
+        'title', 'add_text', 'export_gif', 'thumbnail', 'description',
+        'switch_scene', 'add_scene', 'add_source',
+        'start_recording', 'stop_recording', 'pause_recording', 'resume_recording',
+        'set_quality', 'set_format', 'set_volume', 'mute', 'unmute',
+        'apply_audio_effect', 'remove_audio_effect',
+        'apply_noise_reduction', 'remove_noise_reduction',
+        'transcribe', 'add_subtitle',
+    ]);
+    const clampNum = (v, min, max) => {
+        const n = Number(v);
+        return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : undefined;
+    };
+    const safeText = (v, maxLen = 200) =>
+        typeof v === 'string' ? v.slice(0, maxLen) : undefined;
 
-        const clipId = command.clipId || timeline.selectedClipId;
+    const handleAICommand = useCallback((rawCommand) => {
+        if (!rawCommand || typeof rawCommand !== 'object') return;
+        // Deep-copy only plain fields; reject anything exotic up front.
+        let command;
+        try { command = JSON.parse(JSON.stringify(rawCommand)); } catch { return; }
+        if (!command || !AI_ALLOWED_ACTIONS.has(command.action)) return;
+
+        // Resolve the target clip: must be a real clip in the timeline.
+        let clipId = command.clipId || timeline.selectedClipId;
+        if (clipId && !timeline.clips.some(c => c.id === clipId)) clipId = null;
+        command.clipId = clipId;
 
         switch (command.action) {
             // === EDITING ===
@@ -466,12 +490,14 @@ export const EditMode = () => {
                 if (clipId && command.end !== undefined) {
                     const clip = timeline.clips.find(c => c.id === clipId);
                     if (clip) {
-                        const startTime = command.start ?? clip.startTime;
-                        const newDuration = command.end - startTime;
-                        timeline.updateClip(clipId, {
-                            startTime,
-                            duration: Math.max(0.1, newDuration),
-                        });
+                        const startTime = clampNum(command.start ?? clip.startTime, 0, 360000);
+                        const end = clampNum(command.end, 0.1, 360000);
+                        if (startTime !== undefined && end !== undefined && end > startTime) {
+                            timeline.updateClip(clipId, {
+                                startTime,
+                                duration: Math.max(0.1, end - startTime),
+                            });
+                        }
                     }
                 }
                 break;
@@ -481,7 +507,7 @@ export const EditMode = () => {
                     const clip = timeline.clips.find(c => c.id === clipId);
                     if (clip) {
                         timeline.updateClip(clipId, {
-                            duration: Math.max(0.1, clip.duration - command.seconds),
+                            duration: Math.max(0.1, clip.duration - clampNum(command.seconds, 0.1, 360000)),
                         });
                     }
                 }
@@ -490,16 +516,26 @@ export const EditMode = () => {
 
             // === FILTERS ===
             case 'apply_filter': {
-                if (clipId) {
+                // filterId must exist in the registry; params must be a small
+                // flat object of numbers/short strings.
+                if (clipId && FILTER_REGISTRY[command.filter]) {
                     const clip = timeline.clips.find(c => c.id === clipId);
                     if (clip) {
-                        const newFilter = { filterId: command.filter, params: command.params || {} };
+                        let safeParams = {};
+                        if (command.params && typeof command.params === 'object' && !Array.isArray(command.params)) {
+                            for (const [k, v] of Object.entries(command.params).slice(0, 8)) {
+                                if (/^[a-zA-Z_]\w{0,31}$/.test(k)) {
+                                    safeParams[k] = typeof v === 'number' && Number.isFinite(v) ? v : String(v).slice(0, 64);
+                                }
+                            }
+                        }
+                        const newFilter = { filterId: command.filter, params: safeParams };
                         const existing = clip.filters || [];
                         // Replace if same filter exists, else append
                         const idx = existing.findIndex(f => f.filterId === command.filter);
                         const updated = idx >= 0
                             ? existing.map((f, i) => i === idx ? newFilter : f)
-                            : [...existing, newFilter];
+                            : [...existing, newFilter].slice(0, 16);
                         timeline.updateClip(clipId, { filters: updated });
                         setActiveFilters(updated);
                     }
@@ -527,7 +563,7 @@ export const EditMode = () => {
 
             // === TRANSITIONS ===
             case 'set_transition': {
-                if (clipId) {
+                if (clipId && typeof command.type === 'string' && /^[a-zA-Z]\w{0,31}$/.test(command.type)) {
                     const clip = timeline.clips.find(c => c.id === clipId);
                     if (clip) {
                         timeline.updateClip(clipId, {
@@ -540,14 +576,20 @@ export const EditMode = () => {
 
             // === KEYFRAMES ===
             case 'add_keyframe': {
-                if (clipId && command.param && command.time !== undefined && command.value !== undefined) {
-                    timeline.addKeyframe(clipId, command.param, command.time, command.value, command.interpolation || 'linear');
+                const time = clampNum(command.time, 0, 360000);
+                const value = clampNum(command.value, -100000, 100000);
+                const paramOk = typeof command.param === 'string' && /^[a-zA-Z_]\w{0,31}$/.test(command.param);
+                const interpOk = ['linear', 'easeIn', 'easeOut', 'easeInOut', 'hold'].includes(command.interpolation) || !command.interpolation;
+                if (clipId && paramOk && interpOk && time !== undefined && value !== undefined) {
+                    timeline.addKeyframe(clipId, command.param, time, value, command.interpolation || 'linear');
                 }
                 break;
             }
             case 'remove_keyframe': {
-                if (clipId && command.param && command.time !== undefined) {
-                    timeline.removeKeyframe(clipId, command.param, command.time);
+                const time = clampNum(command.time, 0, 360000);
+                const paramOk = typeof command.param === 'string' && /^[a-zA-Z_]\w{0,31}$/.test(command.param);
+                if (clipId && paramOk && time !== undefined) {
+                    timeline.removeKeyframe(clipId, command.param, time);
                 }
                 break;
             }
@@ -555,8 +597,7 @@ export const EditMode = () => {
             // === ZOOM (preview zoom, not timeline zoom) ===
             case 'zoom': {
                 setZoomEnabled(true);
-                const level = command.level || 3;
-                setZoomLevel(level);
+                setZoomLevel(clampNum(command.level, 1, 10) || 3);
                 break;
             }
 
@@ -566,23 +607,26 @@ export const EditMode = () => {
                 break;
 
             // === ANNOTATION ===
-            case 'annotate':
+            case 'annotate': {
+                const toolOk = typeof command.tool === 'string' && /^[a-zA-Z]\w{0,15}$/.test(command.tool);
+                const colorOk = typeof command.color === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(command.color);
                 setAnnotationEnabled(true);
                 setActiveTool('draw');
-                if (command.tool) annotation.setTool(command.tool);
-                if (command.color) annotation.setColor(command.color);
+                if (toolOk) annotation.setTool(command.tool);
+                if (colorOk) annotation.setColor(command.color);
                 break;
+            }
 
             // === TEXT / TITLE OVERLAYS ===
             case 'title':
             case 'add_text':
                 overlays.addTextOverlay(
-                    command.text || 'Title',
-                    command.x || 50,
-                    command.y || 50,
+                    safeText(command.text, 200) || 'Title',
+                    clampNum(command.x, 0, 100) ?? 50,
+                    clampNum(command.y, 0, 100) ?? 50,
                     {
-                        fontSize: command.fontSize || (command.action === 'title' ? 36 : 24),
-                        duration: command.duration || 5,
+                        fontSize: clampNum(command.fontSize, 8, 200) || (command.action === 'title' ? 36 : 24),
+                        duration: clampNum(command.duration, 0.5, 600) || 5,
                         startTime: command.action === 'title' && command.position === 'end' ? -3 : 0,
                     }
                 );
@@ -625,7 +669,7 @@ export const EditMode = () => {
             case 'apply_noise_reduction':
                 if (clipId) {
                     timeline.updateClip(clipId, {
-                        noiseReduction: { strength: command.strength || 0.7, enabled: true }
+                        noiseReduction: { strength: clampNum(command.strength, 0.1, 1) ?? 0.7, enabled: true }
                     });
                 }
                 break;
@@ -892,17 +936,32 @@ export const EditMode = () => {
                 <div style={{ position: 'fixed', bottom: '0.5rem', right: '0.5rem', zIndex: 50, display: 'flex', gap: '0.3rem' }}>
                     <button className="btn btn-outline" style={{ fontSize: '0.65rem', padding: '0.25rem 0.5rem' }}
                         onClick={() => {
-                            const project = { clips: timeline.clips, tracks: timeline.tracks, savedAt: Date.now() };
-                            localStorage.setItem('opencam_studio_project', JSON.stringify(project));
-                            showToast('Saved', 'Project saved to browser storage', 'success');
+                            try {
+                                localStorage.setItem('opencam_studio_project', JSON.stringify(useTimelineStore.getState().serializeProject()));
+                                showToast('Saved', 'Project saved to browser storage', 'success');
+                            } catch (err) {
+                                showToast('Error', 'Save failed: ' + err.message, 'error');
+                            }
                         }}>Save</button>
                     <button className="btn btn-outline" style={{ fontSize: '0.65rem', padding: '0.25rem 0.5rem' }}
                         onClick={() => {
                             const saved = localStorage.getItem('opencam_studio_project');
                             if (!saved) { showToast('Error', 'No saved project found.', 'error'); return; }
-                            const project = JSON.parse(saved);
-                            project.clips.forEach(c => timeline.addClip(c.trackIndex, c));
-                            showToast('Loaded', 'Project loaded from browser storage', 'success');
+                            try {
+                                const data = JSON.parse(saved);
+                                if (data?.version === 2) {
+                                    useTimelineStore.getState().loadProjectState(data);
+                                    showToast('Loaded', 'Project restored from browser storage', 'success');
+                                } else if (data?.clips) {
+                                    // Legacy format: append-only best effort.
+                                    data.clips.forEach(c => timeline.addClip(c.trackIndex || 0, c));
+                                    showToast('Loaded', 'Legacy project appended to timeline', 'success');
+                                } else {
+                                    showToast('Error', 'Saved project is empty or corrupt.', 'error');
+                                }
+                            } catch (err) {
+                                showToast('Error', 'Load failed: ' + err.message, 'error');
+                            }
                         }}>Load</button>
                 </div>
             )}

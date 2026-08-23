@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './OnboardingTour.css';
 
 const STEPS = [
@@ -27,6 +27,22 @@ const STEPS = [
 export const OnboardingTour = ({ onComplete }) => {
     const [step, setStep] = useState(0);
     const [dismissed, setDismissed] = useState(false);
+    const [targetRect, setTargetRect] = useState(null);
+
+    useEffect(() => {
+        if (dismissed) return;
+        const selector = STEPS[step]?.target;
+        const el = selector ? document.querySelector(selector) : null;
+        if (el) {
+            el.classList.add('onboarding-target-active');
+            setTargetRect(el.getBoundingClientRect());
+        } else {
+            setTargetRect(null);
+        }
+        return () => {
+            if (el) el.classList.remove('onboarding-target-active');
+        };
+    }, [step, dismissed]);
 
     if (dismissed) return null;
 
@@ -49,9 +65,20 @@ export const OnboardingTour = ({ onComplete }) => {
         onComplete?.();
     };
 
+    const cardStyle = targetRect
+        ? {
+              position: 'fixed',
+              top: Math.min(targetRect.bottom + 12, window.innerHeight - 220),
+              left: Math.max(12, Math.min(
+                  targetRect.left + targetRect.width / 2 - 200,
+                  window.innerWidth - 412
+              )),
+          }
+        : undefined;
+
     return (
         <div className="onboarding-overlay">
-            <div className="onboarding-card">
+            <div className="onboarding-card" style={cardStyle}>
                 <div className="onboarding-step">{step + 1} / {STEPS.length}</div>
                 <h3 className="onboarding-title">{currentStep.title}</h3>
                 <p className="onboarding-text">{currentStep.text}</p>

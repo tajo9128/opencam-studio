@@ -7,6 +7,7 @@ export PROXIES_DIR=/proxies
 export PROJECTS_DIR=/projects
 export OUTPUT_DIR=/output
 export RECORDINGS_DIR=/recordings
+export SIGNALING_BASE_PATH=/signaling
 
 # Ensure .uploads temp directory exists (multer needs it)
 mkdir -p /videos/.uploads
@@ -14,8 +15,8 @@ mkdir -p /videos/.uploads
 # Graceful shutdown
 cleanup() {
     echo "Shutting down..."
-    kill $RTMP_PID $RECORDING_PID $PROJECT_PID 2>/dev/null
-    wait $RTMP_PID $RECORDING_PID $PROJECT_PID 2>/dev/null
+    kill $RTMP_PID $RECORDING_PID $PROJECT_PID $SIGNALING_PID 2>/dev/null
+    wait $RTMP_PID $RECORDING_PID $PROJECT_PID $SIGNALING_PID 2>/dev/null
     exit 0
 }
 trap cleanup SIGTERM SIGINT
@@ -43,11 +44,14 @@ RECORDING_PID=$!
 start_service "project-server" node project-server.js &
 PROJECT_PID=$!
 
+start_service "signaling-server" node signaling-server.js &
+SIGNALING_PID=$!
+
 # Start nginx in foreground
 echo "Starting nginx..."
 nginx -c /etc/nginx/nginx.conf -g 'daemon off;' &
 NGINX_PID=$!
 
 # Wait for any process to exit
-wait -n $RTMP_PID $RECORDING_PID $PROJECT_PID $NGINX_PID
+wait -n $RTMP_PID $RECORDING_PID $PROJECT_PID $SIGNALING_PID $NGINX_PID
 cleanup

@@ -234,6 +234,103 @@ export const useTimelineStore = create((set, get) => ({
         });
     },
 
+    // === PROJECT SAVE/LOAD (v2 full-fidelity) ===
+
+    // Serialize everything needed to restore the exact editing session.
+    // Render-pipeline aliases (clipId, trackStart) are embedded so the server's
+    // MLT generator keeps working off this same structure.
+    serializeProject: () => {
+        const state = get();
+        const sanitizeClip = (c) => {
+            const clone = JSON.parse(JSON.stringify(c));
+            // blob:/data: URLs die after reload - strip them and flag the clip
+            if (clone.sourceUrl && /^(blob:|data:)/.test(clone.sourceUrl)) {
+                clone.sourceUrl = null;
+                clone.missingSource = true;
+            }
+            if (clone.sourceUrl) {
+                const m = clone.sourceUrl.match(/\/api\/videos\/([^/?]+)/);
+                if (m) clone.clipId = m[1];
+            }
+            clone.trackStart = clone.startTime;
+            return clone;
+        };
+        return {
+            version: 2,
+            savedAt: Date.now(),
+            tracks: state.tracks.map((t, ti) => ({
+                id: t.id,
+                name: t.name,
+                type: t.type,
+                muted: !!t.muted,
+                locked: !!t.locked,
+                visible: t.visible !== false,
+                clips: state.clips.filter(c => c.trackIndex === ti).map(sanitizeClip),
+            })),
+            markers: JSON.parse(JSON.stringify(state.markers)),
+            annotations: JSON.parse(JSON.stringify(state.annotations)),
+            animations: JSON.parse(JSON.stringify(state.animations)),
+            zoomPanRegions: JSON.parse(JSON.stringify(state.zoomPanRegions)),
+            cursorEvents: JSON.parse(JSON.stringify(state.cursorEvents)),
+        };
+    },
+
+    // Atomically replace the entire editing session. Clears undo history -
+    // a freshly loaded project has no meaningful past.
+    loadProjectState: (data) => {
+        if (!data || !Array.isArray(data.tracks)) return false;
+
+        const clips = [];
+        const tracks = [];
+        let maxClipNum = 0;
+
+        for (let ti = 0; ti < data.tracks.length; ti++) {
+            const t = data.tracks[ti];
+            tracks.push({
+                id: t.id || `track_${ti}`,
+                name: t.name || (ti === 0 ? 'Timeline' : `Track ${ti + 1}`),
+                type: t.type || 'video',
+                muted: !!t.muted,
+                locked: !!t.locked,
+                visible: t.visible !== false,
+            });
+            for (const c of (t.clips || [])) {
+                const clip = { ...JSON.parse(JSON.stringify(c)), trackIndex: ti };
+                delete clip.clipId;     // render alias - re-derived on save
+                delete clip.trackStart; // render alias
+                delete clip.savedAt;
+                if (!clip.id) clip.id = `clip_${++clipIdCounter}`;
+                clips.push(clip);
+                const m = /^clip_(\d+)$/.exec(clip.id);
+                if (m) maxClipNum = Math.max(maxClipNum, parseInt(m[1], 10));
+            }
+        }
+
+        if (tracks.length === 0) {
+            tracks.push({ id: 'track_0', name: 'Timeline', type: 'video', muted: false, locked: false, visible: true });
+        }
+        clipIdCounter = Math.max(clipIdCounter, maxClipNum);
+
+        set({
+            clips,
+            tracks,
+            duration: computeDuration(clips),
+            currentTime: 0,
+            selectedClipId: null,
+            isPlaying: false,
+            markers: Array.isArray(data.markers) ? JSON.parse(JSON.stringify(data.markers)) : [],
+            annotations: Array.isArray(data.annotations) ? JSON.parse(JSON.stringify(data.annotations)) : [],
+            animations: Array.isArray(data.animations) ? JSON.parse(JSON.stringify(data.animations)) : [],
+            zoomPanRegions: Array.isArray(data.zoomPanRegions) ? JSON.parse(JSON.stringify(data.zoomPanRegions)) : [],
+            cursorEvents: Array.isArray(data.cursorEvents) ? JSON.parse(JSON.stringify(data.cursorEvents)) : [],
+            undoStack: [],
+            redoStack: [],
+            canUndo: false,
+            canRedo: false,
+        });
+        return true;
+    },
+
     // === FADE IN/OUT (from OpenShot) ===
     fadeIn: (clipId, duration = 1) => {
         const state = get();

@@ -34,3 +34,5 @@ spa-server.mjs
 
 # Agent Metadata
 .agent/
+
+graphify-out/

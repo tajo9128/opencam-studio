@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 8080;
 
 const server = http.createServer((req, res) => {
     const origin = req.headers.origin || 'http://localhost:3000';
-    if (req.url === '/health') {
+    if (req.url === '/health' || req.url.endsWith('/health')) {
         res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': origin });
         res.end(JSON.stringify({ status: 'ok', activeStreams: wss.clients.size }));
         return;
@@ -149,9 +149,10 @@ wss.on('connection', (ws) => {
         });
     }
 
-    ws.on('message', (data) => {
+    ws.on('message', (data, isBinary) => {
+        const text = isBinary ? null : data.toString();
         // First message is config JSON
-        if (!config && typeof data === 'string') {
+        if (!config && text) {
             try {
                 config = JSON.parse(data);
                 if (config.type === 'config') {
@@ -184,9 +185,8 @@ wss.on('connection', (ws) => {
         }
 
         // Stop command
-        if (typeof data === 'string') {
-            try {
-                const msg = JSON.parse(data);
+        if (text) {            try {
+                const msg = JSON.parse(text);
                 if (msg.type === 'stop') {
                     maxRetriesReached = true;
                     ffmpegProcesses.forEach(p => {

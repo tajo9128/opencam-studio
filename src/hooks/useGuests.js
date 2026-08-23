@@ -7,7 +7,15 @@ const ICE_SERVERS = {
     ],
 };
 
-export const useGuests = (signalingUrl = 'ws://localhost:8083') => {
+// Location-relative signaling endpoint so the app works behind any host,
+// not just localhost. Can be overridden for advanced setups.
+function defaultSignalingUrl() {
+    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${proto}//${window.location.host}/signaling`;
+}
+
+export const useGuests = (signalingUrl) => {
+    const resolvedUrl = signalingUrl || defaultSignalingUrl();
     const [guests, setGuests] = useState([]);
     const [roomId, setRoomId] = useState(null);
     const [isHost, setIsHost] = useState(false);
@@ -15,42 +23,57 @@ export const useGuests = (signalingUrl = 'ws://localhost:8083') => {
     const wsRef = useRef(null);
     const peerConnections = useRef(new Map());
     const localStreamRef = useRef(null);
+    const hostTokenRef = useRef(null);
 
     const createRoom = useCallback(async (localStream) => {
         localStreamRef.current = localStream;
         setIsHost(true);
 
-        const ws = new WebSocket(signalingUrl);
+        const ws = new WebSocket(resolvedUrl);
         wsRef.current = ws;
 
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
+            const failTimer = setTimeout(() => reject(new Error('Signaling server unreachable')), 10000);
             ws.onopen = async () => {
-                const res = await fetch('http://localhost:8083/api/room', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ hostId: 'host' }),
-                });
-                const { roomId: id } = await res.json();
-                setRoomId(id);
-                setConnected(true);
+                try {
+                    // Relative URL - goes through nginx to the signaling server.
+                    const res = await fetch('/signaling/api/room', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ hostId: 'host' }),
+                    });
+                    if (!res.ok) throw new Error(`Room creation failed (${res.status})`);
+                    const { roomId: id, hostToken } = await res.json();
+                    hostTokenRef.current = hostToken;
+                    setRoomId(id);
+                    setConnected(true);
+                    clearTimeout(failTimer);
 
-                ws.send(JSON.stringify({
-                    type: 'join',
-                    roomId: id,
-                    peerId: 'host',
-                    role: 'host',
-                    name: 'Host',
-                }));
+                    ws.send(JSON.stringify({
+                        type: 'join',
+                        roomId: id,
+                        peerId: 'host',
+                        role: 'host',
+                        name: 'Host',
+                        hostToken,
+                    }));
 
-                resolve(id);
+                    resolve(id);
+                } catch (err) {
+                    clearTimeout(failTimer);
+                    reject(err);
+                }
             };
-
+            ws.onerror = () => {
+                clearTimeout(failTimer);
+                reject(new Error('Cannot connect to signaling server'));
+            };
             ws.onmessage = (event) => {
                 const msg = JSON.parse(event.data);
                 handleHostMessage(msg);
             };
         });
-    }, [signalingUrl]);
+    }, [resolvedUrl]);
 
     const handleHostMessage = useCallback((msg) => {
         switch (msg.type) {

@@ -12,7 +12,12 @@ export const useStreaming = () => {
         } catch { return [{ platform: 'youtube', streamKey: '', rtmpUrl: '', label: 'YouTube' }]; }
     });
     const [destStatuses, setDestStatuses] = useState({});
-    const [relayUrl, setRelayUrlState] = useState(() => localStorage.getItem('stream_relay_url') || 'ws://localhost:8080');
+    const [relayUrl, setRelayUrlState] = useState(() => {
+        const saved = localStorage.getItem('stream_relay_url');
+        if (saved && saved !== 'ws://localhost:8080') return saved;
+        const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        return `${proto}//${window.location.host}/rtmp`;
+    });
     const [resolution, setResolution] = useState('1080p');
     const [bitrate, setBitrate] = useState(6000);
 
