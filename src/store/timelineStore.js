@@ -539,6 +539,7 @@ export const useTimelineStore = create((set, get) => ({
         const state = get();
         const clip = state.clips.find(c => c.id === clipId);
         if (!clip) return;
+        state.saveUndo();
         const deltaTime = deltaFrames / fps;
         const newStart = Math.max(0, clip.startTime + deltaTime);
         set({
@@ -612,6 +613,7 @@ export const useTimelineStore = create((set, get) => ({
     },
 
     moveClip: (id, newStartTime, newTrackIndex) => {
+        get().saveUndo();
         set(state => ({
             clips: state.clips.map(c => {
                 if (c.id !== id) return c;
@@ -625,6 +627,7 @@ export const useTimelineStore = create((set, get) => ({
     },
 
     resizeClip: (id, newDuration, fromLeft = false) => {
+        get().saveUndo();
         set(state => ({
             clips: state.clips.map(c => {
                 if (c.id !== id) return c;
