@@ -8,26 +8,28 @@ class StorageManager {
     this.db = null;
   }
 
-  async init() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-      request.onerror = () => reject('Error opening IndexedDB');
-      request.onsuccess = (event) => {
-        this.db = event.target.result;
-        resolve();
+  init() {
+    const tryOpen = () => new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(STORE_CHUNKS)) db.createObjectStore(STORE_CHUNKS, { autoIncrement: true });
+        if (!db.objectStoreNames.contains(STORE_SETTINGS)) db.createObjectStore(STORE_SETTINGS);
       };
-
-      request.onupgradeneeded = (event) => {
-        const db = event.target.result;
-        if (!db.objectStoreNames.contains(STORE_CHUNKS)) {
-          db.createObjectStore(STORE_CHUNKS, { autoIncrement: true });
-        }
-        if (!db.objectStoreNames.contains(STORE_SETTINGS)) {
-          db.createObjectStore(STORE_SETTINGS);
-        }
-      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error || new Error('IDB open failed'));
+      req.onblocked = () => reject(new Error('IDB blocked'));
     });
+    return tryOpen()
+      .then(db => { this.db = db; return true; })
+      .catch(err => {
+        console.warn('[StorageManager] reopening after failure:', err.message);
+        return new Promise(resolve => {
+          const del = indexedDB.deleteDatabase(DB_NAME);
+          del.onsuccess = del.onerror = del.onblocked = () =>
+            tryOpen().then(db => { this.db = db; resolve(true); }).catch(() => resolve(false));
+        });
+      });
   }
 
   async saveChunk(blob) {
@@ -36,9 +38,14 @@ class StorageManager {
       const transaction = this.db.transaction([STORE_CHUNKS], 'readwrite');
       const store = transaction.objectStore(STORE_CHUNKS);
       const request = store.add(blob);
-
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject('Error saving chunk');
+      let key;
+      request.onsuccess = () => { key = request.result; };
+      transaction.oncomplete = () => resolve(key);
+      transaction.onerror = () => {
+        const err = transaction.error || new Error('Chunk save failed');
+        if (err.name === 'QuotaExceededError') reject(new Error('STORAGE_FULL'));
+        else reject(err);
+      };
     });
   }
 
@@ -100,8 +107,23 @@ class StorageManager {
   }
 
   async hasUnsavedData() {
-    const chunks = await this.getAllChunks();
-    return chunks.length > 0;
+    if (!this.db) return false;
+    return new Promise((resolve) => {
+      try {
+        const tx = this.db.transaction(STORE_CHUNKS, 'readonly');
+        const req = tx.objectStore(STORE_CHUNKS).count();
+        req.onsuccess = () => resolve(req.result > 0);
+        req.onerror = () => resolve(false);
+      } catch { resolve(false); }
+    });
+  }
+
+  async estimateQuota() {
+    if (!navigator.storage?.estimate) return null;
+    try {
+      const { usage = 0, quota = 0 } = await navigator.storage.estimate();
+      return { usage, quota, percent: quota ? Math.round((usage / quota) * 100) : 0 };
+    } catch { return null; }
   }
 }
 
