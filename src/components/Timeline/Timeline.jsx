@@ -131,6 +131,7 @@ export const Timeline = ({
     const handleClipMouseDown = useCallback((e, clip, resizeSide) => {
         e.stopPropagation();
         useTimelineStore.getState().setSelectedClipId(clip.id);
+        useTimelineStore.getState().saveUndo();
 
         if (resizeSide) {
             setDragging({
