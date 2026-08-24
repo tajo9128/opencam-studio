@@ -379,12 +379,29 @@ app.get('/api/jobs/:jobId/output', (req, res) => {
 // vars) so keys can live entirely outside the browser.
 
 const AI_PROVIDERS = {
+    embedded: {
+        endpoint: `http://127.0.0.1:${process.env.LLM_PORT || 8084}/v1/chat/completions`,
+        envKey: null,
+        style: 'openai',
+    },
     openai:     { endpoint: 'https://api.openai.com/v1/chat/completions',      envKey: 'OPENAI_API_KEY',     style: 'openai' },
     anthropic:  { endpoint: 'https://api.anthropic.com/v1/messages',           envKey: 'ANTHROPIC_API_KEY',  style: 'anthropic' },
     groq:       { endpoint: 'https://api.groq.com/openai/v1/chat/completions', envKey: 'GROQ_API_KEY',       style: 'openai' },
     together:   { endpoint: 'https://api.together.xyz/v1/chat/completions',    envKey: 'TOGETHER_API_KEY',   style: 'openai' },
     openrouter: { endpoint: 'https://openrouter.ai/api/v1/chat/completions',   envKey: 'OPENROUTER_API_KEY', style: 'openai' },
 };
+
+app.get('/api/ai/status', async (req, res) => {
+    try {
+        const resp = await fetch(`http://127.0.0.1:${process.env.LLM_PORT || 8084}/health`, {
+            signal: AbortSignal.timeout(3000)
+        });
+        const ok = resp.ok;
+        res.json({ embedded: ok, model: 'llama-3.2-3b-instruct-q4_k_m' });
+    } catch {
+        res.json({ embedded: false, model: null });
+    }
+});
 
 app.post('/api/ai/chat', async (req, res) => {
     try {
@@ -395,7 +412,7 @@ app.post('/api/ai/chat', async (req, res) => {
         // Prefer the server-configured key; fall back to a per-request client key
         // that is used once in-memory and never persisted.
         const apiKey = process.env[provider.envKey] || (typeof clientKey === 'string' ? clientKey.slice(0, 256) : '');
-        if (!apiKey) return res.status(401).json({ error: `No API key configured. Set ${provider.envKey} on the server or provide one in Settings.` });
+        if (!apiKey && rawProvider !== 'embedded') return res.status(401).json({ error: `No API key configured. Set ${provider.envKey} on the server or provide one in Settings.` });
 
         if (!Array.isArray(messages) || messages.length === 0 || messages.length > 64) {
             return res.status(400).json({ error: 'messages must be a non-empty array (max 64)' });
@@ -427,7 +444,7 @@ app.post('/api/ai/chat', async (req, res) => {
                 messages: chatMsgs,
             });
         } else {
-            headers['Authorization'] = `Bearer ${apiKey}`;
+            if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
             if (provider === AI_PROVIDERS.openrouter) {
                 headers['HTTP-Referer'] = 'https://opencam-studio.app';
                 headers['X-Title'] = 'OpenCam Studio';

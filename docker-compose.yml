@@ -14,6 +14,10 @@ services:
       - recordings:/recordings
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    environment:
+      - LLM_THREADS=${LLM_THREADS:-4}
+      - LLM_CTX_SIZE=${LLM_CTX_SIZE:-2048}
+      - LLM_PORT=8084
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1/health"]
       interval: 30s
@@ -27,3 +31,4 @@ volumes:
   projects:
   output:
   recordings:
+  models:

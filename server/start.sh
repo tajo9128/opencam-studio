@@ -15,8 +15,8 @@ mkdir -p /videos/.uploads
 # Graceful shutdown
 cleanup() {
     echo "Shutting down..."
-    kill $RTMP_PID $RECORDING_PID $PROJECT_PID $SIGNALING_PID 2>/dev/null
-    wait $RTMP_PID $RECORDING_PID $PROJECT_PID $SIGNALING_PID 2>/dev/null
+    kill $RTMP_PID $RECORDING_PID $PROJECT_PID $SIGNALING_PID $LLM_PID 2>/dev/null
+    wait $RTMP_PID $RECORDING_PID $PROJECT_PID $SIGNALING_PID $LLM_PID 2>/dev/null
     exit 0
 }
 trap cleanup SIGTERM SIGINT
@@ -47,11 +47,25 @@ PROJECT_PID=$!
 start_service "signaling-server" node signaling-server.js &
 SIGNALING_PID=$!
 
+# Start embedded LLM server (if model exists)
+if [ -f "${LLM_MODEL_PATH:-/models/llama-3.2-3b-instruct-q4_k_m.gguf}" ]; then
+    start_service "llama-server" llama-server \
+        -m "${LLM_MODEL_PATH:-/models/llama-3.2-3b-instruct-q4_k_m.gguf}" \
+        --host 127.0.0.1 \
+        --port "${LLM_PORT:-8084}" \
+        -c "${LLM_CTX_SIZE:-2048}" \
+        -t "${LLM_THREADS:-4}" \
+        -b 256 \
+        --mlock \
+        --no-webui &
+    LLM_PID=$!
+fi
+
 # Start nginx in foreground
 echo "Starting nginx..."
 nginx -c /etc/nginx/nginx.conf -g 'daemon off;' &
 NGINX_PID=$!
 
 # Wait for any process to exit
-wait -n $RTMP_PID $RECORDING_PID $PROJECT_PID $SIGNALING_PID $NGINX_PID
+wait -n $RTMP_PID $RECORDING_PID $PROJECT_PID $SIGNALING_PID $LLM_PID $NGINX_PID
 cleanup

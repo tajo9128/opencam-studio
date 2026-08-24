@@ -21,6 +21,25 @@ RUN cmake .. \
     make -j$(nproc) && \
     make install
 
+FROM alpine:3.22 AS llama-builder
+RUN apk add --no-cache cmake make g++ git curl
+WORKDIR /src
+# Pin to a specific stable llama.cpp release tag (e.g. b2900 or later)
+RUN git clone --depth 1 https://github.com/ggml-org/llama.cpp.git
+WORKDIR /src/llama.cpp
+RUN cmake -B build \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DLLAMA_STATIC=ON && \
+    cmake --build build --config Release --target llama-server -j$(nproc) && \
+    strip build/bin/llama-server
+
+FROM alpine:3.22 AS model-downloader
+RUN apk add --no-cache curl
+WORKDIR /models
+# Download Meta-Llama-3.2-3B-Instruct-Q4_K_M (~2.02GB)
+RUN curl -L -o llama-3.2-3b-instruct-q4_k_m.gguf \
+    "https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf?download=true"
+
 FROM node:22-alpine3.22 AS frontend-builder
 WORKDIR /app
 COPY package*.json ./
@@ -31,14 +50,20 @@ RUN npm run build
 FROM node:22-alpine3.22
 
 RUN apk upgrade --no-cache && apk add --no-cache \
-    ffmpeg frei0r-plugins nginx \
+    ffmpeg frei0r-plugins nginx libstdc++ \
     libxml2 libsamplerate libexif libvorbis opus
 
 COPY --from=mlt-builder /usr/local /usr/local
+COPY --from=llama-builder /src/llama.cpp/build/bin/llama-server /usr/local/bin/llama-server
+COPY --from=model-downloader /models /models
 
 ENV MLT_PATH=/usr/local/lib/mlt-7 \
     MLT_REPOSITORY=/usr/local/lib/mlt-7 \
-    PATH=/usr/local/bin:${PATH}
+    PATH=/usr/local/bin:${PATH} \
+    LLM_MODEL_PATH=/models/llama-3.2-3b-instruct-q4_k_m.gguf \
+    LLM_PORT=8084 \
+    LLM_THREADS=4 \
+    LLM_CTX_SIZE=2048
 
 WORKDIR /app
 
@@ -60,7 +85,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD wget -qO- http://localhost/health || exit 1
 
 RUN addgroup -S opencam && adduser -S opencam -G opencam
-RUN chown -R opencam:opencam /app /videos /proxies /projects /output /recordings /var/lib/nginx /var/log/nginx /etc/nginx/conf.d /tmp
+RUN chown -R opencam:opencam /app /videos /proxies /projects /output /recordings /models /var/lib/nginx /var/log/nginx /etc/nginx/conf.d /tmp
 RUN chmod 755 /var/log/nginx
 
 CMD ["/app/start.sh"]

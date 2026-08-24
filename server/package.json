@@ -1,7 +1,7 @@
 {
-  "name": "opencam-studio-rtmp-relay",
-  "version": "1.0.0",
-  "description": "WebSocket to RTMP relay for OpenCam Studio streaming",
+  "name": "opencam-server",
+  "version": "2.2.0",
+  "description": "Video rendering and streaming backend",
   "main": "rtmp-relay.js",
   "scripts": {
     "start": "node rtmp-relay.js"

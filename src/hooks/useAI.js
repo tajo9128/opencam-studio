@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { COMMAND_PATTERNS, SYSTEM_PROMPT, HELP_MESSAGE } from '../constants/aiPrompts';
 
 // Ollama endpoints: Docker proxy first, then direct localhost
@@ -18,6 +18,8 @@ export const useAI = () => {
     const [ollamaModel, setOllamaModelState] = useState(() => localStorage.getItem('ollama_model') || '');
     const [ollamaModels, setOllamaModels] = useState([]);
     const [ollamaBase, setOllamaBase] = useState('');
+    const [embeddedAvailable, setEmbeddedAvailable] = useState(false);
+    const [embeddedModel, setEmbeddedModel] = useState(null);
     const [voiceEnabled, setVoiceEnabled] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const recognitionRef = useRef(null);
@@ -64,6 +66,26 @@ export const useAI = () => {
         setOllamaConnected(false);
         return false;
     }, [ollamaModel, setOllamaModel]);
+
+    // Check embedded LLM connection
+    const checkEmbedded = useCallback(async () => {
+        try {
+            const res = await fetch('/api/ai/status', { signal: AbortSignal.timeout(5000) });
+            if (res.ok) {
+                const data = await res.json();
+                setEmbeddedAvailable(data.embedded);
+                setEmbeddedModel(data.model);
+                return data.embedded;
+            }
+        } catch { /* not available */ }
+        setEmbeddedAvailable(false);
+        return false;
+    }, []);
+
+    useEffect(() => {
+        checkOllama();
+        checkEmbedded();
+    }, [checkOllama, checkEmbedded]);
 
     // Stream from Ollama (real-time token output)
     const streamOllama = useCallback(async (input, recentMessages, onToken) => {
@@ -164,9 +186,9 @@ export const useAI = () => {
     // Shared call through the server-side AI proxy. The browser never talks to
     // LLM providers directly and never picks the endpoint - the server pins it
     // per provider, closing the key-exfiltration vector.
-    const viaProxy = useCallback(async ({ input, recentMessages = [], stream = false, onToken } = {}) => {
+    const viaProxy = useCallback(async ({ input, recentMessages = [], stream = false, onToken, overrideProvider } = {}) => {
         const key = apiKey || localStorage.getItem('opencam_studio_api_key') || '';
-        const provider = providerState || localStorage.getItem('opencam_studio_api_provider') || 'openai';
+        const provider = overrideProvider || providerState || localStorage.getItem('opencam_studio_api_provider') || 'openai';
         try {
             const llmMessages = recentMessages.map(m => ({ role: m.role, content: m.content }));
             llmMessages.push({ role: 'user', content: input });
@@ -175,7 +197,7 @@ export const useAI = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     provider,
-                    model,
+                    model: overrideProvider === 'embedded' ? 'llama-3.2-3b-instruct-q4_k_m' : model,
                     apiKey: key || undefined,
                     stream,
                     messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...llmMessages.slice(-8)],
@@ -274,8 +296,12 @@ export const useAI = () => {
                     });
                 };
 
-                // Try streaming from Ollama first
-                if (ollamaConnected) {
+                // Try streaming from Embedded LLM first
+                if (embeddedAvailable) {
+                    command = await viaProxy({ input, recentMessages, stream: true, onToken, overrideProvider: 'embedded' });
+                }
+                // Then try streaming from Ollama
+                if (!command && ollamaConnected) {
                     command = await streamOllama(input, recentMessages, onToken);
                 }
                 // Then try streaming from paid API
@@ -283,6 +309,9 @@ export const useAI = () => {
                     command = await streamLLM(input, recentMessages, onToken);
                 }
                 // Fallback to non-streaming
+                if (!command && embeddedAvailable) {
+                    command = await viaProxy({ input, recentMessages, stream: false, overrideProvider: 'embedded' });
+                }
                 if (!command && ollamaConnected) {
                     command = await callOllama(input, recentMessages);
                 }
@@ -444,6 +473,7 @@ export const useAI = () => {
         sendMessage, clearMessages, stopStreaming,
         apiKey, setApiKey, provider: providerState, setProvider, model, setModel,
         ollamaConnected, ollamaModel, setOllamaModel, ollamaModels, checkOllama,
+        embeddedAvailable, embeddedModel, checkEmbedded,
         voiceEnabled, setVoiceEnabled, isListening, startListening, stopListening,
     };
 };

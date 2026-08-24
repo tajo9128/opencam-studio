@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useAI } from '../../hooks/useAI';
 import './SettingsPage.css';
 
 export const SettingsPage = () => {
+    const { embeddedAvailable, embeddedModel, checkEmbedded } = useAI();
     // AI — Ollama
     const [ollamaStatus, setOllamaStatus] = useState('checking');
     const [ollamaModels, setOllamaModels] = useState([]);
@@ -121,9 +123,24 @@ export const SettingsPage = () => {
                     </div>
                 </section>
 
-                {/* ====== AI PROVIDER (Ollama + Paid API) ====== */}
+                {/* ====== AI PROVIDER ====== */}
                 <section className="settings-section">
                     <div className="settings-section-header"><h2>AI Provider</h2></div>
+
+                    {/* Embedded AI */}
+                    <div className="settings-card" style={{ borderLeft: embeddedAvailable ? '4px solid #10b981' : '4px solid #64748b' }}>
+                        <h3>Built-in AI</h3>
+                        <p className="settings-desc">The completely offline, private AI bundled into OpenCam Studio Docker container.</p>
+                        <div className="settings-field">
+                            <label>Status</label>
+                            <div className="settings-row">
+                                <span className="settings-status" style={{ color: embeddedAvailable ? '#10b981' : '#64748b', fontWeight: 'bold' }}>
+                                    {embeddedAvailable ? `✅ Ready (${embeddedModel || 'Llama-3.2'})` : '⏳ Loading or unavailable...'}
+                                </span>
+                                <button className="btn btn-outline btn-sm" onClick={checkEmbedded}>Refresh</button>
+                            </div>
+                        </div>
+                    </div>
 
                     {/* Ollama */}
                     <div className="settings-card">
