@@ -613,35 +613,43 @@ export const useTimelineStore = create((set, get) => ({
     },
 
     moveClip: (id, newStartTime, newTrackIndex) => {
-        set(state => ({
-            clips: state.clips.map(c => {
-                if (c.id !== id) return c;
-                return {
-                    ...c,
-                    startTime: Math.max(0, newStartTime),
-                    ...(newTrackIndex !== undefined ? { trackIndex: newTrackIndex } : {}),
-                };
-            }),
-        }));
+        const state = get();
+        state.saveUndo();
+        const newClips = state.clips.map(c => {
+            if (c.id !== id) return c;
+            return {
+                ...c,
+                startTime: Math.max(0, newStartTime),
+                ...(newTrackIndex !== undefined ? { trackIndex: newTrackIndex } : {}),
+            };
+        });
+        set({
+            clips: newClips,
+            duration: computeDuration(newClips),
+        });
     },
 
     resizeClip: (id, newDuration, fromLeft = false) => {
-        set(state => ({
-            clips: state.clips.map(c => {
-                if (c.id !== id) return c;
-                const dur = Math.max(0.1, newDuration);
-                if (fromLeft) {
-                    const diff = c.duration - dur;
-                    return {
-                        ...c,
-                        startTime: c.startTime + diff,
-                        duration: dur,
-                        sourceStart: c.sourceStart + diff * (c.speed || 1),
-                    };
-                }
-                return { ...c, duration: dur };
-            }),
-        }));
+        const state = get();
+        state.saveUndo();
+        const newClips = state.clips.map(c => {
+            if (c.id !== id) return c;
+            const dur = Math.max(0.1, newDuration);
+            if (fromLeft) {
+                const diff = c.duration - dur;
+                return {
+                    ...c,
+                    startTime: c.startTime + diff,
+                    duration: dur,
+                    sourceStart: c.sourceStart + diff * (c.speed || 1),
+                };
+            }
+            return { ...c, duration: dur };
+        });
+        set({
+            clips: newClips,
+            duration: computeDuration(newClips),
+        });
     },
 
     splitAtPlayhead: () => {

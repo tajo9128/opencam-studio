@@ -75,6 +75,16 @@ export const useLiveChat = () => {
         return ws;
     }, []);
 
+    const disconnect = useCallback(() => {
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+        }
+        setConnected(false);
+        setPlatform(null);
+        channelIdRef.current = null;
+    }, []);
+
     const connect = useCallback((plat, channelId) => {
         disconnect();
         channelIdRef.current = channelId;
@@ -88,17 +98,7 @@ export const useLiveChat = () => {
         } else if (plat === 'twitch') {
             return connectTwitch(channelId);
         }
-    }, [pollYouTubeChat, connectTwitch]);
-
-    const disconnect = useCallback(() => {
-        if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-        }
-        setConnected(false);
-        setPlatform(null);
-        channelIdRef.current = null;
-    }, []);
+    }, [pollYouTubeChat, connectTwitch, disconnect]);
 
     const addManualMessage = useCallback((text, author = 'Host') => {
         setMessages(prev => [...prev, {
