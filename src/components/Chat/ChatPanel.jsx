@@ -5,6 +5,7 @@ export const ChatPanel = ({
     isOpen, onClose, messages, isProcessing, onSend, onClear,
     apiKey, onApiKeyChange,
     ollamaConnected, ollamaModel, ollamaModels, onCheckOllama,
+    embeddedAvailable,
 }) => {
     const [input, setInput] = useState('');
     const [showSettings, setShowSettings] = useState(false);
@@ -33,8 +34,8 @@ export const ChatPanel = ({
                 <div className="chat-header-left">
                     <span className="chat-icon">AI</span>
                     <span className="chat-title">OpenCam Studio AI</span>
-                    <span className={`chat-status ${ollamaConnected ? 'connected' : apiKey ? 'connected' : 'local'}`}>
-                        {ollamaConnected ? `Ollama: ${ollamaModel || 'ready'}` : apiKey ? 'API' : 'Local'}
+                    <span className={`chat-status ${embeddedAvailable ? 'connected' : ollamaConnected ? 'connected' : apiKey ? 'connected' : 'local'}`}>
+                        {embeddedAvailable ? 'Built-in AI' : ollamaConnected ? `Ollama: ${ollamaModel || 'ready'}` : apiKey ? 'API' : 'Local'}
                     </span>
                 </div>
                 <div className="chat-header-right">

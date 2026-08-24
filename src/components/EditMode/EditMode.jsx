@@ -906,11 +906,12 @@ export const EditMode = () => {
                 ollamaConnected={ai.ollamaConnected}
                 ollamaModel={ai.ollamaModel}
                 ollamaModels={ai.ollamaModels}
-                onSetOllamaModel={ai.setOllamaModel}
                 onCheckOllama={ai.checkOllama}
+                onSetOllamaModel={ai.setOllamaModel}
+                embeddedAvailable={ai.embeddedAvailable}
                 apiKey={ai.apiKey}
                 onApiKeyChange={ai.setApiKey}
-                voiceInput={ai.isListening}
+                voiceInput={ai.voiceEnabled}
                 onStartVoice={ai.startListening}
                 onStopVoice={ai.stopListening}
             />

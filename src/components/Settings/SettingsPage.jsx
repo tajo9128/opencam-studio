@@ -11,7 +11,7 @@ export const SettingsPage = () => {
     const [ollamaEndpoint, setOllamaEndpoint] = useState(() => localStorage.getItem('ollama_endpoint') || '');
 
     // AI — Paid API
-    const [apiProvider, setApiProvider] = useState(() => localStorage.getItem('ai_provider') || 'openai');
+    const [apiProvider, setApiProvider] = useState(() => localStorage.getItem('ai_provider') || 'embedded');
     const [apiKey, setApiKeyState] = useState(() => localStorage.getItem('ai_api_key') || '');
         const [apiModel, setApiModelState] = useState(() => localStorage.getItem('ai_model') || 'gpt-4o-mini');
 
@@ -186,6 +186,7 @@ export const SettingsPage = () => {
                             <select className="settings-select" value={apiProvider}
                                 onChange={e => { setApiProvider(e.target.value); save('ai_provider', e.target.value); }}>
                                 {[
+                                    { id: 'embedded', label: 'Built-in AI (Local)' },
                                     { id: 'openai', label: 'OpenAI' },
                                     { id: 'anthropic', label: 'Anthropic' },
                                     { id: 'groq', label: 'Groq' },

@@ -810,7 +810,9 @@ const ScreenRecorder = () => {
                 messages={ai.messages} isProcessing={ai.isProcessing} onSend={handleAICommand}
                 onClear={ai.clearMessages} apiKey={ai.apiKey} onApiKeyChange={ai.setApiKey}
                 ollamaConnected={ai.ollamaConnected} ollamaModel={ai.ollamaModel}
-                ollamaModels={ai.ollamaModels} onCheckOllama={ai.checkOllama} />
+                ollamaModels={ai.ollamaModels} onCheckOllama={ai.checkOllama}
+                embeddedAvailable={ai.embeddedAvailable}
+            />
 
             <WelcomeModal
                 isOpen={showWelcome}

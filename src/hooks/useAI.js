@@ -12,7 +12,7 @@ export const useAI = () => {
     const [isStreaming, setIsStreaming] = useState(false);
     const [apiKey, setApiKeyState] = useState(() => localStorage.getItem('ai_api_key') || '');
     const [apiEndpoint, setApiEndpointState] = useState(() => localStorage.getItem('ai_api_endpoint') || 'https://api.openai.com/v1/chat/completions');
-    const [providerState, setProviderState] = useState(() => localStorage.getItem('ai_provider') || 'openai');
+    const [providerState, setProviderState] = useState(() => localStorage.getItem('ai_provider') || 'embedded');
     const [model, setModelState] = useState(() => localStorage.getItem('ai_model') || 'gpt-4o-mini');
     const [ollamaConnected, setOllamaConnected] = useState(false);
     const [ollamaModel, setOllamaModelState] = useState(() => localStorage.getItem('ollama_model') || '');
@@ -188,7 +188,7 @@ export const useAI = () => {
     // per provider, closing the key-exfiltration vector.
     const viaProxy = useCallback(async ({ input, recentMessages = [], stream = false, onToken, overrideProvider } = {}) => {
         const key = apiKey || localStorage.getItem('opencam_studio_api_key') || '';
-        const provider = overrideProvider || providerState || localStorage.getItem('opencam_studio_api_provider') || 'openai';
+        const provider = overrideProvider || providerState || localStorage.getItem('opencam_studio_api_provider') || 'embedded';
         try {
             const llmMessages = recentMessages.map(m => ({ role: m.role, content: m.content }));
             llmMessages.push({ role: 'user', content: input });
@@ -197,7 +197,7 @@ export const useAI = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     provider,
-                    model: overrideProvider === 'embedded' ? 'llama-3.2-3b-instruct-q4_k_m' : model,
+                    model: (overrideProvider === 'embedded' || provider === 'embedded') ? 'llama-3.2-3b-instruct-q4_k_m' : model,
                     apiKey: key || undefined,
                     stream,
                     messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...llmMessages.slice(-8)],
@@ -257,15 +257,17 @@ export const useAI = () => {
 
     // Streaming LLM (through proxy)
     const streamLLM = useCallback(async (input, recentMessages, onToken) => {
-        if (!apiKey && !localStorage.getItem('opencam_studio_api_key')) return null;
-        return viaProxy({ stream: true, onToken });
-    }, [viaProxy, apiKey]);
+        const isEmbedded = providerState === 'embedded';
+        if (!isEmbedded && !apiKey && !localStorage.getItem('opencam_studio_api_key')) return null;
+        return viaProxy({ input, recentMessages, stream: true, onToken });
+    }, [viaProxy, apiKey, providerState]);
 
     // Non-streaming LLM fallback (through proxy)
     const callLLM = useCallback(async (input, recentMessages) => {
-        if (!apiKey && !localStorage.getItem('opencam_studio_api_key')) return null;
+        const isEmbedded = providerState === 'embedded';
+        if (!isEmbedded && !apiKey && !localStorage.getItem('opencam_studio_api_key')) return null;
         return viaProxy({ input, recentMessages, stream: false });
-    }, [viaProxy, apiKey]);
+    }, [viaProxy, apiKey, providerState]);
 
     const sendMessage = useCallback(async (input) => {
         if (!input.trim()) return null;
@@ -304,8 +306,8 @@ export const useAI = () => {
                 if (!command && ollamaConnected) {
                     command = await streamOllama(input, recentMessages, onToken);
                 }
-                // Then try streaming from paid API
-                if (!command && (apiKey || localStorage.getItem('opencam_studio_api_key'))) {
+                // Then try streaming from paid API or explicit embedded
+                if (!command && (providerState === 'embedded' || apiKey || localStorage.getItem('opencam_studio_api_key'))) {
                     command = await streamLLM(input, recentMessages, onToken);
                 }
                 // Fallback to non-streaming
@@ -315,7 +317,7 @@ export const useAI = () => {
                 if (!command && ollamaConnected) {
                     command = await callOllama(input, recentMessages);
                 }
-                if (!command && (apiKey || localStorage.getItem('opencam_studio_api_key'))) {
+                if (!command && (providerState === 'embedded' || apiKey || localStorage.getItem('opencam_studio_api_key'))) {
                     command = await callLLM(input, recentMessages);
                 }
 
@@ -334,7 +336,7 @@ export const useAI = () => {
 
             // 3. Final fallback
             if (!command) {
-                const hint = !ollamaConnected && !apiKey ? ' For complex edits, start Ollama or add an API key in Settings.' : '';
+                const hint = !embeddedAvailable && !ollamaConnected && !apiKey ? ' For complex edits, run the Docker container for built-in AI, or add an API key in Settings.' : '';
                 command = { action: 'chat', message: `I couldn't parse that.${hint} Type "help" for available commands.` };
             }
 

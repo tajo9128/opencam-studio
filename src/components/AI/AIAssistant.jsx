@@ -5,6 +5,7 @@ export const AIAssistant = ({
     isOpen, onToggle,
     messages, isProcessing, isStreaming, onSend, onClear,
     ollamaConnected, ollamaModel, ollamaModels, onCheckOllama, onSetOllamaModel,
+    embeddedAvailable,
     apiKey, onApiKeyChange,
     voiceInput, onStartVoice, onStopVoice,
 }) => {
@@ -70,8 +71,8 @@ export const AIAssistant = ({
                         <div className="ai-drawer-header-left">
                             <span className="ai-drawer-icon">AI</span>
                             <span className="ai-drawer-title">OpenCam Studio AI</span>
-                            <span className={`ai-drawer-status ${ollamaConnected ? 'connected' : apiKey ? 'connected' : 'local'}`}>
-                                {ollamaConnected ? `Ollama: ${ollamaModel || 'ready'}` : apiKey ? 'API' : 'Local'}
+                            <span className={`ai-drawer-status ${embeddedAvailable ? 'connected' : ollamaConnected ? 'connected' : apiKey ? 'connected' : 'local'}`}>
+                                {embeddedAvailable ? 'Built-in AI' : ollamaConnected ? `Ollama: ${ollamaModel || 'ready'}` : apiKey ? 'API' : 'Local'}
                             </span>
                         </div>
                         <div className="ai-drawer-header-right">
