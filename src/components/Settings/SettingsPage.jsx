@@ -145,7 +145,7 @@ export const SettingsPage = () => {
                     {/* Ollama */}
                     <div className="settings-card">
                         <h3>Ollama (Free, Local)</h3>
-                        <p className="settings-desc">Run AI commands locally with Ollama. No API key needed. Install Ollama and pull a model to get started.</p>
+                        <p className="settings-desc">Run AI commands locally with Ollama. Used as a fallback if the Built-in AI is unavailable or disabled.</p>
                         <div className="settings-field">
                             <label>Status</label>
                             <div className="settings-row">
@@ -178,7 +178,7 @@ export const SettingsPage = () => {
                     <div className="settings-card">
                         <h3>Cloud AI Provider</h3>
                         <p className="settings-desc">
-                            Fallback when Ollama is offline. Requests go through the server's AI proxy —
+                            Fallback when Built-in AI and Ollama are offline. Requests go through the server's AI proxy —
                             endpoints are pinned per provider, and a server-side key (env var) takes priority.
                         </p>
                         <div className="settings-field">

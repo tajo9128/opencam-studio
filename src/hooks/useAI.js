@@ -6,7 +6,7 @@ const OLLAMA_ENDPOINTS = ['/api/ollama', 'http://localhost:11434'];
 
 export const useAI = () => {
     const [messages, setMessages] = useState([
-        { role: 'assistant', content: 'Hi! I\'m OpenCam Studio AI. Try: "trim first 5 seconds", "apply sepia filter", "set speed to 2x", or type "help" for all commands.' }
+        { role: 'assistant', content: 'Hi! I\'m OpenCam Studio Built-in AI (Llama 3.2). Try: "trim first 5 seconds", "apply sepia filter", "set speed to 2x", or type "help" for all commands.' }
     ]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isStreaming, setIsStreaming] = useState(false);
